@@ -33,7 +33,7 @@ Detalhes completos em `docs/business_problem.md` e no `README.md`.
                Dados Analíticos
                         │
                         ▼
-                   POSTGRESQL
+                   MYSQL
                         │
              ┌──────────┴──────────┐
              │                     │
@@ -52,9 +52,9 @@ Detalhes completos em `docs/business_problem.md` e no `README.md`.
 
 O pipeline de dados (Bronze → Silver → Gold) roda no **Databricks** com
 **PySpark**, gravando tabelas em formato **Delta Lake**. As tabelas Gold são
-posteriormente carregadas em um banco **PostgreSQL**, que serve tanto o
+posteriormente carregadas em um banco **MySQL**, que serve tanto o
 **backend/API** quanto o **dashboard**, e o **agente de IA (Gemini)** consulta
-o PostgreSQL de forma controlada, apenas leitura, via o backend.
+o MySQL de forma controlada, apenas leitura, via o backend.
 
 ---
 
@@ -113,13 +113,13 @@ API, dashboard e agente de IA.
 | `gold.delay_causes` | agregado por motivo | Distribuição de motivos de atraso |
 | `gold.flight_trends` | 1 registro = mês | Evolução de atrasos ao longo do ano |
 
-**Consumidores:** PostgreSQL → API (backend) → Dashboard e Agente de IA.
+**Consumidores:** MySQL → API (backend) → Dashboard e Agente de IA.
 
 ---
 
-## 🐘 Banco de Dados
+## 🐬 Banco de Dados
 
-PostgreSQL recebe as tabelas Gold para consumo por aplicações externas ao
+MySQL recebe as tabelas Gold para consumo por aplicações externas ao
 Databricks (Etapa 16). Decisão sobre modelo (tabelas analíticas diretas vs.
 modelo dimensional) será registrada nesse momento.
 
