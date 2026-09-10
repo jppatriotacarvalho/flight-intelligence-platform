@@ -67,7 +67,7 @@ export default function Chat() {
       <h2>Chat com a IA</h2>
       <p className="chat__hint">
         O agente responde apenas sobre voos, aeroportos, companhias aéreas,
-        rotas e atrasos — outras perguntas são recusadas automaticamente.
+        rotas e atrasos. Outras perguntas são recusadas automaticamente.
       </p>
 
       <div className="chat__examples">
