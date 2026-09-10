@@ -21,7 +21,12 @@ export default function DataTable<T>({
   emptyMessage = "Nenhum resultado encontrado.",
 }: DataTableProps<T>) {
   if (loading) {
-    return <p className="data-table__status">Carregando...</p>;
+    return (
+      <div className="data-table__status">
+        <span className="spinner" aria-hidden="true" />
+        <span>Carregando...</span>
+      </div>
+    );
   }
 
   if (error) {
@@ -33,23 +38,25 @@ export default function DataTable<T>({
   }
 
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          {columns.map((col) => (
-            <th key={col.header}>{col.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((row, index) => (
-          <tr key={index}>
+    <div className="data-table__wrapper">
+      <table className="data-table">
+        <thead>
+          <tr>
             {columns.map((col) => (
-              <td key={col.header}>{col.render(row)}</td>
+              <th key={col.header}>{col.header}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {data.map((row, index) => (
+            <tr key={index}>
+              {columns.map((col) => (
+                <td key={col.header}>{col.render(row)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

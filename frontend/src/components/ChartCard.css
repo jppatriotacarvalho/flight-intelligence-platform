@@ -1,15 +1,19 @@
+@import "../theme.css";
+
 .chart-card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1.5rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
 }
 
 .chart-card__title {
-  margin: 0 0 1rem 0;
-  color: #1a2b4c;
-  font-size: 1.05rem;
+  margin: 0 0 var(--space-3) 0;
+  color: var(--color-text);
+  font-size: 1.2rem;
+  font-weight: 500;
 }
 
 .chart-card__body {
@@ -18,7 +22,7 @@
 }
 
 .chart-card__caption {
-  margin: 0.75rem 0 0 0;
-  font-size: 0.8rem;
-  color: #6b7280;
+  margin: var(--space-3) 0 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
 }

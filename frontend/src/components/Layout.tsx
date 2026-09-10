@@ -4,8 +4,11 @@ import "./Layout.css";
 export default function Layout() {
   return (
     <div className="layout">
-      <header className="layout__header">
-        <h1 className="layout__title">✈️ Flight Intelligence Platform</h1>
+      <aside className="layout__sidebar">
+        <div className="layout__brand">
+          <span className="layout__brand-mark" />
+          <h1 className="layout__title">Flight Intelligence</h1>
+        </div>
         <nav className="layout__nav">
           <NavLink to="/" end>
             Dashboard
@@ -16,7 +19,7 @@ export default function Layout() {
           <NavLink to="/atrasos">Atrasos</NavLink>
           <NavLink to="/chat">Chat IA</NavLink>
         </nav>
-      </header>
+      </aside>
 
       <main className="layout__content">
         <Outlet />

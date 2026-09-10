@@ -6,7 +6,6 @@ import "./Chat.css";
 interface Message {
   role: "user" | "assistant";
   text: string;
-  sql?: string | null;
   blocked?: boolean;
 }
 
@@ -14,7 +13,6 @@ const EXAMPLE_QUESTIONS = [
   "Qual companhia tem a maior taxa de atraso?",
   "Qual aeroporto tem mais voos?",
   "Qual mês teve mais atrasos?",
-  "Qual a capital da França?",
 ];
 
 export default function Chat() {
@@ -42,7 +40,6 @@ export default function Chat() {
         {
           role: "assistant",
           text: response.answer,
-          sql: response.sql,
           blocked: response.blocked,
         },
       ]);
@@ -86,19 +83,14 @@ export default function Chat() {
           <div key={i} className={`chat__message chat__message--${m.role}`}>
             <div className="chat__bubble">
               <p>{m.text}</p>
-              {m.sql && (
-                <details className="chat__sql">
-                  <summary>Ver SQL gerado</summary>
-                  <code>{m.sql}</code>
-                </details>
-              )}
             </div>
           </div>
         ))}
         {loading && (
           <div className="chat__message chat__message--assistant">
             <div className="chat__bubble chat__bubble--loading">
-              Pensando...
+              <span className="spinner" aria-hidden="true" />
+              <span>Pensando...</span>
             </div>
           </div>
         )}

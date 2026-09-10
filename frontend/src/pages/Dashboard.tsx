@@ -36,6 +36,15 @@ const MONTH_SHORT = [
 ];
 
 const PIE_COLORS = ["#4f8ff7", "#f79b4f", "#4fc78f", "#e05c5c", "#a05cf7"];
+const TOOLTIP_STYLE = {
+  backgroundColor: "#ffffff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 8,
+  color: "#1a1a1a",
+  fontSize: 13,
+};
+const AXIS_COLOR = "#6b7280";
+const GRID_COLOR = "#e5e7eb";
 
 export default function Dashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -66,7 +75,13 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p>Carregando dashboard...</p>;
+  if (loading)
+    return (
+      <div className="dashboard__loading">
+        <span className="spinner" aria-hidden="true" />
+        <span>Carregando dashboard...</span>
+      </div>
+    );
   if (error) return <p className="dashboard__error">Erro: {error}</p>;
   if (!summary) return null;
 
@@ -166,10 +181,13 @@ export default function Dashboard() {
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={airlineChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="companhia" />
-              <YAxis unit="%" />
-              <Tooltip formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+              <XAxis dataKey="companhia" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
+              <YAxis unit="%" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
+              <Tooltip
+                contentStyle={TOOLTIP_STYLE}
+                formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]}
+              />
               <Bar dataKey="taxa_atraso" fill="#4f8ff7" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -185,10 +203,13 @@ export default function Dashboard() {
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={airportChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="aeroporto" />
-              <YAxis unit="%" />
-              <Tooltip formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+              <XAxis dataKey="aeroporto" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
+              <YAxis unit="%" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
+              <Tooltip
+                contentStyle={TOOLTIP_STYLE}
+                formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]}
+              />
               <Bar dataKey="taxa_atraso" fill="#f79b4f" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -217,8 +238,11 @@ export default function Dashboard() {
                   <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: any) => value.toLocaleString("pt-BR")} />
-              <Legend />
+              <Tooltip
+                contentStyle={TOOLTIP_STYLE}
+                formatter={(value: any) => Number(value).toLocaleString("pt-BR")}
+              />
+              <Legend wrapperStyle={{ color: AXIS_COLOR, fontSize: 13 }} />
             </PieChart>
           </div>
         </ChartCard>
@@ -233,16 +257,19 @@ export default function Dashboard() {
         >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis unit="%" />
-              <Tooltip formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+              <XAxis dataKey="mes" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
+              <YAxis unit="%" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
+              <Tooltip
+                contentStyle={TOOLTIP_STYLE}
+                formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]}
+              />
               <Line
                 type="monotone"
                 dataKey="taxa_atraso"
                 stroke="#4f8ff7"
                 strokeWidth={2}
-                dot={{ r: 4 }}
+                dot={{ r: 4, fill: "#4f8ff7" }}
               />
             </LineChart>
           </ResponsiveContainer>

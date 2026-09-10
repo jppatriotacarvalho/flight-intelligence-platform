@@ -1,0 +1,37 @@
+:root {
+  /* Cores base (tema claro) */
+  --color-bg: #f5f6fa;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f3f4f8;
+  --color-border: #e5e7eb;
+  --color-text: #1a1a1a;
+  --color-text-muted: #6b7280;
+
+  /* Accent (usado em bordas ativas, links, foco) */
+  --color-accent: #4f8ff7;
+  --color-accent-soft: rgba(79, 143, 247, 0.12);
+  --color-accent-border: rgba(79, 143, 247, 0.35);
+
+  /* Sidebar (mantem o navy escuro original) */
+  --sidebar-bg: #1a2b4c;
+  --sidebar-text: #ffffff;
+  --sidebar-text-muted: #c9d4e8;
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+
+  /* Estado */
+  --color-danger: #b91c1c;
+  --color-success: #16a34a;
+
+  /* Espacamento */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Outros */
+  --radius: 8px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
