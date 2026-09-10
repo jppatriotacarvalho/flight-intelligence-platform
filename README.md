@@ -206,24 +206,19 @@ Este projeto usa o **Flight Delay Dataset — 2024**.
 
 ---
 
-## 📚 Documentação Completa
+## 📚 Processo de Documentação
 
-Este README traz a visão geral; a pasta [`docs/`](docs/) contém o
-detalhamento de cada etapa do projeto:
-
-| Documento | Conteúdo |
-|---|---|
-| `business_problem.md` | Problema de negócio e público-alvo |
-| `data_dictionary.md` | As 35 colunas do dataset, documentadas e classificadas |
-| `data_quality.md` | Análise exploratória e achados de qualidade |
-| `business_questions.md` | Perguntas de negócio que a plataforma responde |
-| `silver_rules.md` | Regras de limpeza e transformação dos dados |
-| `business_rules.md` | Definição oficial dos KPIs |
-| `architecture.md` | Arquitetura geral e papel de cada camada |
-| `database_model.md` | Modelo de banco e validação da importação |
-| `ai_agent_security.md` | Pipeline de segurança do agente de IA |
-| `testing.md` | Relatório de testes realizados |
-| `decision_log.md` | Decisões técnicas que desviaram do plano original |
+Ao longo do desenvolvimento, cada etapa do projeto foi documentada
+internamente: o problema de negócio e o público-alvo, as 35 colunas do
+dataset (tipo, nulos, classificação), os achados da análise exploratória
+de qualidade, as perguntas de negócio que a plataforma responde, as
+regras de limpeza aplicadas na camada Silver, a definição oficial dos
+KPIs, a arquitetura de cada camada, o modelo do banco de dados e a
+validação da importação, o pipeline de segurança do agente de IA, o
+relatório de testes realizados, e as decisões técnicas que desviaram do
+plano original (como a troca de PostgreSQL por MySQL, e a escolha de
+Python/FastAPI para o backend). Essa documentação guiou o
+desenvolvimento passo a passo, mas não está incluída neste repositório.
 
 ---
 
