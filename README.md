@@ -23,6 +23,16 @@ Detalhes completos do problema de negócio em [`docs/business_problem.md`](docs/
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](docs/images/dashboard.png)
+
+### Chat com IA
+![Chat IA](docs/images/chat.png)
+
+---
+
 ## 🏗️ Arquitetura
 
 ```text
