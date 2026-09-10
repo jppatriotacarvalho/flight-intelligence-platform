@@ -1,8 +1,9 @@
-# 📊 Modelo de Banco de Dados — Etapa 16
+# 🐬 Modelo de Banco de Dados — Etapa 16
 
 ## Decisão: Tabelas Analíticas Diretas
 
-**Alternativas consideradas:** tabelas analíticas diretas vs. modelo dimensional (fato + dimensões).
+**Alternativas consideradas:** tabelas analíticas diretas vs. modelo
+dimensional (fato + dimensões).
 
 **Decisão:** tabelas analíticas diretas — uma tabela MySQL por tabela Gold,
 sem transformar em esquema estrela.
@@ -31,7 +32,20 @@ prontas, não fazendo OLAP livre sobre voo individual).
 
 ---
 
-## 📤 Status
+## Validação da Importação (Databricks → MySQL)
 
-✅ Modelo definido e justificado — item 16.2 da Etapa 16.
-⏭️ Próximo passo: criar o schema (16.3), importar os dados e criar índices (16.4).
+| Tabela | Databricks (Gold) | MySQL (importado) | Status |
+|---|---:|---:|---|
+| airline_performance | 15 | 15 | ✅ |
+| airport_performance | 348 | 348 | ✅ |
+| route_performance | 6.805 | 6.805 | ✅ |
+| delay_causes | 1 | 1 | ✅ |
+| flight_trends | 12 | 12 | ✅ |
+
+Todos os registros migrados sem perda. Índices criados conforme item 16.4
+(ver `database/schema.sql`).
+
+## 📤 Status Final
+
+✅ Etapa 16 concluída — banco `flight_intelligence` criado no MySQL, com as 5
+tabelas populadas e validadas 1:1 contra as tabelas Gold do Databricks.

@@ -1,0 +1,136 @@
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 160px);
+}
+
+.chat__hint {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-top: -0.5rem;
+}
+
+.chat__examples {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.chat__examples button {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background-color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #374151;
+}
+
+.chat__examples button:hover:not(:disabled) {
+  background-color: #eef1f8;
+}
+
+.chat__examples button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat__messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.chat__message {
+  display: flex;
+}
+
+.chat__message--user {
+  justify-content: flex-end;
+}
+
+.chat__message--assistant {
+  justify-content: flex-start;
+}
+
+.chat__bubble {
+  max-width: 70%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chat__bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.chat__message--user .chat__bubble {
+  background-color: #1a2b4c;
+  color: white;
+}
+
+.chat__bubble--loading {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.chat__sql {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.chat__sql summary {
+  cursor: pointer;
+  color: #4f8ff7;
+}
+
+.chat__sql code {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.5rem;
+  background-color: #f5f6fa;
+  border-radius: 6px;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat__input-form {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.chat__input-form input {
+  flex: 1;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.chat__input-form button {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #1a2b4c;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chat__input-form button:hover:not(:disabled) {
+  background-color: #29406e;
+}
+
+.chat__input-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

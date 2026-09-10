@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: flight_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: flight_intelligence
+    ports:
+      - "3307:3306"   # 3307 no host para nao conflitar com um MySQL local ja rodando
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/flight_intelligence_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: flight_backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: flight_intelligence
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    container_name: flight_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

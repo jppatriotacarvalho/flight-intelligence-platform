@@ -1,0 +1,41 @@
+.dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.dashboard__card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dashboard__label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.dashboard__value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a2b4c;
+}
+
+.dashboard__error {
+  color: #b91c1c;
+}
+
+.dashboard__pie-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}

@@ -122,9 +122,15 @@ PROBLEMA → EVIDÊNCIA → DECISÃO → TRANSFORMAÇÃO → VALIDAÇÃO
 
 ## Regra 10 — Validações estruturais obrigatórias
 
-Regras de integridade a aplicar como filtro/validação (não removem dado por
-"parecer estranho" — são checagens de consistência básica sugeridas pelo
-próprio plano):
+- **Problema:** ausência de checagens de integridade básica antes de
+  finalizar a Silver.
+- **Coluna:** `fl_date`, `origin`, `dest`, `distance`.
+- **Evidência:** no sample, todas as 10.000 linhas já passam nessas
+  checagens (0 nulos em fl_date/origin/dest, 0 casos de origin=dest, 0
+  distance<=0), mas isso não está garantido no dataset completo sem uma
+  regra explícita.
+- **Decisão:** aplicar as seguintes validações e remover registros que as
+  violarem:
 
 | Validação | Regra |
 |---|---|
@@ -134,14 +140,15 @@ próprio plano):
 | Rota coerente | `origin != dest` |
 | Distância válida | `distance > 0` |
 
-**Evidência no sample:** todas as 4 primeiras validações já passam em 100% dos
-10.000 registros (0 nulos em `fl_date`/`origin`/`dest`, 0 casos de
-`origin = dest`, 0 valores de `distance <= 0`). Serão reaplicadas como
-checagem de qualidade contínua no dataset completo.
-
-**Decisão:** registros que violarem essas regras no dataset completo serão
-**removidos** da Silver e contabilizados no relatório de validação (não
-descartados silenciosamente).
+- **Justificativa:** são checagens de consistência mínima sugeridas pelo
+  próprio plano — não são regras inventadas, mas verificações estruturais
+  óbvias que qualquer pipeline de dados deve ter.
+- **Transformação:** filtro `WHERE` removendo linhas que violem qualquer
+  uma das condições acima.
+- **Validação:** contabilizar quantos registros foram removidos e reportar
+  no resumo da execução (já implementado no código, variável
+  `qtd_invalidos`, testado na Etapa 12 com resultado 0 e na Etapa 15 com
+  resultado 0 também).
 
 ---
 

@@ -19,7 +19,7 @@ decisões importantes").
   em vagas de engenharia de dados), não uma exigência funcional.
 - **Impacto:**
   - `README.md` — seção "Banco de Dados" atualizada de PostgreSQL para MySQL.
-  - `docs/architecture.md` — seção "🐘 Banco de Dados" atualizada.
+  - `docs/architecture.md` — seção "Banco de Dados" atualizada.
   - Etapas 16, 20 e 21 do plano (que citam PostgreSQL) devem ser lidas como
     "MySQL" a partir daqui.
   - Ferramenta de administração: MySQL Workbench (equivalente ao pgAdmin do
@@ -30,6 +30,20 @@ decisões importantes").
 
 ---
 
+## Decisão 02 — Backend: Python + FastAPI
+
+- **Etapa:** 17 (Fase 6 — Aplicação)
+- **Opções do plano:** Java/Spring Boot (Opção A) vs Python/FastAPI (Opção B)
+- **Decisão:** Python + FastAPI
+- **Motivo:** consistência com o restante do stack de dados do projeto
+  (Python/PySpark já usados nas Etapas 10-15), menor curva de setup, e
+  FastAPI gera documentação interativa automática (Swagger/OpenAPI), útil
+  tanto para desenvolvimento do frontend quanto para portfólio.
+- **Impacto:** pasta `backend/` contém uma aplicação FastAPI conectada ao
+  MySQL (`flight_intelligence`) via SQLAlchemy.
+
+---
+
 ## 📤 Status
 
-✅ Decisão registrada. Segue-se com MySQL a partir da Etapa 16.
+✅ Decisões registradas e aplicadas em todo o projeto.

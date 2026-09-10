@@ -163,3 +163,32 @@ plano mestre.
 
 ✅ Arquitetura geral e papel das camadas documentados — Etapas 3 e 9 concluídas.
 ⏭️ Próximo passo: implementação das tabelas Gold (Etapa 14).
+
+---
+
+## 🐳 Containerização (Docker)
+
+Toda a aplicação (exceto o pipeline PySpark, que roda no Databricks) foi
+containerizada com Docker e orquestrada via `docker-compose.yml`:
+
+| Serviço | Imagem base | Porta (host) |
+|---|---|---|
+| `mysql` | `mysql:8.0` | 3307 → 3306 |
+| `backend` | `python:3.12-slim` | 8000 → 8000 |
+| `frontend` | `node:20-alpine` (build) + `nginx:alpine` (serve) | 5173 → 80 |
+
+O MySQL é inicializado automaticamente a partir de um dump
+(`database/flight_intelligence_dump.sql`) na primeira execução, e os dados
+persistem em um volume Docker nomeado (`mysql_data`) entre reinicializações.
+
+O frontend usa build em duas etapas (multi-stage): compila com Node, e
+serve os arquivos estáticos finais via Nginx — resultando numa imagem final
+leve, sem as dependências de desenvolvimento do Node.
+
+**Como subir:** `docker compose up --build` na raiz do projeto, com um
+`.env` preenchido (ver `.env.example`). Detalhes completos no `README.md`.
+
+## 📤 Status Final da Arquitetura
+
+✅ Pipeline de dados, banco, backend, frontend, agente de IA e
+containerização — todos implementados, testados e documentados.
