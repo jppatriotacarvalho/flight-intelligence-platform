@@ -34,3 +34,4 @@ metastore_db/
 .idea/
 
 docs/*.md
+!docs/documentacao_completa.md

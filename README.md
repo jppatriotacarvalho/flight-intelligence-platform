@@ -217,8 +217,9 @@ KPIs, a arquitetura de cada camada, o modelo do banco de dados e a
 validação da importação, o pipeline de segurança do agente de IA, o
 relatório de testes realizados, e as decisões técnicas que desviaram do
 plano original (como a troca de PostgreSQL por MySQL, e a escolha de
-Python/FastAPI para o backend). Essa documentação guiou o
-desenvolvimento passo a passo, mas não está incluída neste repositório.
+Python/FastAPI para o backend). Essa documentação guiou o desenvolvimento
+passo a passo. [A documentação técnica completa pode ser acessada
+aqui](docs/documentacao_completa.md).
 
 ---
 
