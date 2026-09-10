@@ -19,7 +19,7 @@ qualidade, modelagem analítica, disponibilização via API, visualização em
 dashboard e um agente de IA para consultas em linguagem natural — tudo
 containerizado e pronto para rodar com um único comando.
 
-Detalhes completos do problema de negócio em [`docs/business_problem.md`](docs/business_problem.md).
+
 
 ---
 
@@ -77,8 +77,7 @@ Arquitetura completa e decisões de camada em [`docs/architecture.md`](docs/arch
 | Containerização | Docker, Docker Compose |
 | Versionamento | Git, GitHub |
 
-> **Nota:** o plano original previa PostgreSQL; o projeto usa MySQL por
-> decisão registrada em [`docs/decision_log.md`](docs/decision_log.md).
+
 
 ---
 
@@ -99,7 +98,7 @@ flight-intelligence-platform/
 
 ## 🚀 Como Executar
 
-### Opção 1 — Docker (recomendado)
+### Opção 1 — Docker 
 
 Pré-requisitos: Docker Desktop instalado e aberto.
 
@@ -116,43 +115,10 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- Frontend: http://localhost:5173
-- API (docs interativas): http://localhost:8000/docs
+- http://localhost:5173
 
-### Opção 2 — Local (sem Docker)
 
-<details>
-<summary>Backend</summary>
 
-```bash
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1   # Windows
-pip install -r requirements.txt
-cp .env.example .env          # preencha com suas credenciais
-uvicorn app.main:app --reload
-```
-</details>
-
-<details>
-<summary>Frontend</summary>
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-</details>
-
-<details>
-<summary>Banco de dados (MySQL local)</summary>
-
-Rode `database/schema.sql` no MySQL Workbench (ou cliente equivalente) para
-criar as tabelas, e importe os dados a partir das tabelas Gold do
-Databricks. Detalhes em [`docs/database_model.md`](docs/database_model.md).
-</details>
-
----
 
 ## ✨ Funcionalidades
 
@@ -181,7 +147,7 @@ segurança rígido:
   recusadas antes mesmo de gerar SQL
 - Nenhuma credencial é enviada ao modelo de IA
 
-Detalhes e casos de teste em [`docs/ai_agent_security.md`](docs/ai_agent_security.md).
+
 
 ---
 
@@ -191,7 +157,7 @@ Pipeline de dados validado (7.079.081 registros, Bronze → Silver → Gold
 sem perdas), API testada com casos de erro, agente de IA testado contra
 tentativas de burlar a segurança via linguagem natural, e frontend
 verificado em telas estreitas. Dois bugs reais foram encontrados e
-corrigidos durante os testes. Relatório completo em [`docs/testing.md`](docs/testing.md).
+corrigidos durante os testes.
 
 ---
 
@@ -223,10 +189,3 @@ aqui](docs/documentacao_completa.md).
 
 ---
 
-## 📌 Status do Projeto
-
-✅ Pipeline de dados completo (Bronze/Silver/Gold, 7M+ registros)
-✅ Banco de dados, API e frontend funcionais
-✅ Agente de IA com segurança validada
-✅ Totalmente containerizado com Docker
-✅ Testado e documentado
