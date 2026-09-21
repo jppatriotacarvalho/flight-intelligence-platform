@@ -1,16 +1,179 @@
 import os
 import re
 import json
+import time
+import logging
+from decimal import Decimal
 from google import genai
 from sqlalchemy import text
 from app.database import engine
+
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # ETAPA 20 — Configuração do cliente Gemini
 # ============================================================
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+# Modelos confirmados como disponíveis para esta chave.
+# "gemini-2.5-flash" foi removido da cadeia: a API devolve 404 permanente
+# ("no longer available to new users"), então ele nunca funcionou como
+# fallback real — só consumia a última posição da lista.
+MODEL_FALLBACK_CHAIN = [
+    os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3-flash-preview",
+]
+
+# 503 "high demand" costuma passar em segundos: vale retentar no mesmo modelo.
+TRANSIENT_MARKERS = ("503", "UNAVAILABLE")
+
+# 429 do free tier e cota DIARIA (limit: 20 req/dia/modelo). O proprio erro
+# sugere esperar 12-60s, entao insistir no mesmo modelo so gasta tempo —
+# o certo e pular imediatamente para o proximo modelo da cadeia.
+QUOTA_MARKERS = ("429", "RESOURCE_EXHAUSTED")
+
+MAX_TENTATIVAS = 2
+BACKOFF_INICIAL = 1.0
+
+# Teto de tempo para a cadeia inteira. Sem isso, num dia de cota estourada
+# a requisicao percorre todos os modelos e passa de 2 minutos — o frontend
+# desiste antes e mostra "Failed to fetch". Melhor falhar rapido e claro.
+TEMPO_MAXIMO_TOTAL = 45.0
+
+# Teto por chamada. O teto total sozinho nao basta: ele so e conferido entre
+# uma tentativa e outra, entao uma chamada que trava seguraria a requisicao
+# indefinidamente. Cada chamada recebe como timeout o menor valor entre este
+# teto e o que ainda resta do orcamento total.
+#
+# 25s medidos na marra: os erros (429/503) voltam rapido, em 0,4-2,6s, mas uma
+# resposta VALIDA ja levou 24,0s (gemini-3.5-flash). Um teto mais curto matava
+# a resposta certa e o log registrava como "timeout", escondendo a causa.
+TEMPO_MAXIMO_POR_CHAMADA = 25.0
+
+# Cota diaria queimada (429) vale para o resto do dia, nao so para a requisicao
+# atual. Sem memoria entre requisicoes, toda pergunta seguinte gasta a cadeia de
+# novo nos mesmos modelos mortos antes de chegar num que responde. Guardamos o
+# horario ate quando ignorar cada modelo; e memoria de processo, some no restart,
+# o que e proposital — se a cota virar, o proximo deploy ja esquece.
+COOLDOWN_COTA = 900.0  # 15 min
+_cota_esgotada_ate: dict[str, float] = {}
+
+
+def _e_cota(erro: Exception) -> bool:
+    """429 do free tier: a cota e diaria, o modelo esta fora pelo resto do dia."""
+    texto = str(erro).upper()
+    return any(marca in texto for marca in QUOTA_MARKERS)
+
+
+def _e_transitorio(erro: Exception) -> bool:
+    """Erro que tende a sumir em 1-2s — vale nova tentativa no mesmo modelo."""
+    texto = str(erro)
+    if _e_cota(erro):
+        return False
+    return any(marca in texto.upper() for marca in TRANSIENT_MARKERS)
+
+
+def _config_com_timeout(config, segundos: float):
+    """Copia o config acrescentando o timeout HTTP (a API espera milissegundos)."""
+    completo = dict(config or {})
+    http_options = dict(completo.get("http_options") or {})
+    http_options["timeout"] = int(max(segundos, 1.0) * 1000)
+    completo["http_options"] = http_options
+    return completo
+
+
+def _call_gemini_with_fallback(contents, config):
+    """
+    Percorre MODEL_FALLBACK_CHAIN e, em cada modelo, tenta até
+    MAX_TENTATIVAS vezes com backoff exponencial enquanto o erro for
+    transitório (503 "high demand"). Erro permanente ou 429 de cota
+    descarta o modelo na hora e vai para o próximo. Só propaga se todos
+    falharem.
+
+    O orçamento de TEMPO_MAXIMO_TOTAL é conferido antes de cada tentativa
+    e também vira o timeout da própria chamada HTTP, para que nenhuma
+    requisição sozinha estoure o teto.
+    """
+    todos = list(dict.fromkeys(m for m in MODEL_FALLBACK_CHAIN if m))
+    agora = time.monotonic()
+
+    # Modelos com 429 recente vao para o fim da fila em vez de serem removidos:
+    # se todos estiverem em cooldown ainda vale a pena tentar, pode ter virado
+    # o dia ou a cota ter sido liberada.
+    disponiveis = [m for m in todos if _cota_esgotada_ate.get(m, 0.0) <= agora]
+    adiados = [m for m in todos if m not in disponiveis]
+    if adiados:
+        logger.info("Modelos com cota esgotada recente, tentados por ultimo: %s", adiados)
+    modelos = disponiveis + adiados
+
+    ultimo_erro = None
+    prazo = agora + TEMPO_MAXIMO_TOTAL
+
+    for modelo in modelos:
+        if time.monotonic() >= prazo:
+            logger.warning(
+                "Tempo maximo (%.0fs) atingido; modelos nao testados: %s",
+                TEMPO_MAXIMO_TOTAL, modelos[modelos.index(modelo):],
+            )
+            break
+
+        espera = BACKOFF_INICIAL
+        for tentativa in range(1, MAX_TENTATIVAS + 1):
+            restante = prazo - time.monotonic()
+            if restante <= 0:
+                logger.warning(
+                    "Tempo maximo (%.0fs) atingido durante %s.",
+                    TEMPO_MAXIMO_TOTAL, modelo,
+                )
+                break
+
+            try:
+                return client.models.generate_content(
+                    model=modelo,
+                    contents=contents,
+                    config=_config_com_timeout(
+                        config, min(restante, TEMPO_MAXIMO_POR_CHAMADA)
+                    ),
+                )
+            except Exception as erro:
+                ultimo_erro = erro
+
+                if _e_cota(erro):
+                    _cota_esgotada_ate[modelo] = time.monotonic() + COOLDOWN_COTA
+
+                if not _e_transitorio(erro):
+                    logger.warning(
+                        "Modelo %s descartado sem retentar (cota diaria, timeout "
+                        "ou erro permanente), indo para o proximo: %s",
+                        modelo, str(erro)[:200],
+                    )
+                    break
+
+                if tentativa == MAX_TENTATIVAS:
+                    logger.warning(
+                        "Modelo %s falhou apos %d tentativas: %s", modelo, MAX_TENTATIVAS, erro
+                    )
+                    break
+
+                if time.monotonic() + espera >= prazo:
+                    logger.warning("Sem tempo para retentar %s; proximo modelo.", modelo)
+                    break
+
+                logger.info(
+                    "Modelo %s: erro transitorio na tentativa %d, aguardando %.1fs",
+                    modelo, tentativa, espera,
+                )
+                time.sleep(espera)
+                espera *= 2
+
+    if ultimo_erro:
+        raise ultimo_erro
+    raise RuntimeError("Nenhum modelo configurado na cadeia de fallback.")
 
 FORA_DE_CONTEXTO_TOKEN = "FORA_DE_CONTEXTO"
 
@@ -26,12 +189,13 @@ ALLOWED_TABLES: dict[str, list[str]] = {
         "cancelled_flights", "diverted_flights", "delay_rate", "cancellation_rate",
     ],
     "airport_performance": [
-        "airport", "total_flights", "delayed_flights",
+        "airport", "airport_name", "airport_city", "airport_state", "airport_label",
+        "total_flights", "delayed_flights",
         "average_departure_delay", "cancelled_flights",
         "delay_rate", "cancellation_rate",
     ],
     "route_performance": [
-        "origin", "dest", "total_flights",
+        "origin", "origin_name", "dest", "dest_name", "total_flights",
         "average_arrival_delay", "average_distance",
     ],
     "delay_causes": [
@@ -64,14 +228,37 @@ def _build_schema_context() -> str:
     return "\n".join(linhas)
 
 
-def generate_sql(question: str) -> str:
+def _extrair_json(texto: str) -> dict:
     """
-    ETAPA 20.3 — Envia a pergunta ao Gemini e recebe de volta uma
-    consulta SQL (ou o token de fora de contexto).
+    O modelo as vezes embrulha o JSON em cercas ```json ... ```.
+    Remove a cerca e faz o parse do primeiro objeto encontrado.
+    """
+    limpo = texto.strip()
+    limpo = re.sub(r"^```(?:json)?\s*", "", limpo)
+    limpo = re.sub(r"\s*```$", "", limpo)
 
-    IMPORTANTE (Etapa 21.6): nunca enviamos credenciais, connection
-    string ou qualquer dado privado ao Gemini — apenas a pergunta do
-    usuário e a lista de tabelas/colunas permitidas.
+    try:
+        return json.loads(limpo)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", limpo, re.DOTALL)
+        if not match:
+            raise ValueError(f"Resposta do modelo nao e JSON valido: {texto[:200]}")
+        return json.loads(match.group(0))
+
+
+def generate_plan(question: str) -> tuple[str, str]:
+    """
+    ETAPA 20.3 — UMA unica chamada ao Gemini devolve o SQL e o molde da
+    resposta em portugues.
+
+    Antes eram duas chamadas por pergunta (SQL, depois texto), o que
+    consumia o dobro da cota diaria do free tier. Aqui o modelo devolve
+    tambem uma frase com marcadores {coluna}; os numeros reais sao
+    preenchidos em Python a partir do resultado do banco. Isso corta a
+    cota pela metade e ainda elimina o risco de o modelo inventar
+    numeros, porque ele nunca chega a ver os dados.
+
+    Retorna (sql, molde_da_resposta) ou (FORA_DE_CONTEXTO_TOKEN, "").
     """
     schema_context = _build_schema_context()
 
@@ -79,27 +266,51 @@ def generate_sql(question: str) -> str:
 Você converte perguntas em português sobre dados de voos em consultas SQL
 para MySQL.
 
-Regras obrigatórias:
+Responda SEMPRE com um único objeto JSON, sem markdown e sem cercas de
+código, exatamente neste formato:
+{{"sql": "<a consulta>", "resposta": "<frase com marcadores>"}}
+
+Regras para o campo "sql":
 1. Use APENAS estas tabelas e colunas (nunca invente nomes):
 {schema_context}
+2. Gere SOMENTE SELECT. Nunca INSERT, UPDATE, DELETE, DROP, ALTER ou CREATE.
+3. Nunca use "SELECT *" — liste as colunas explicitamente.
+4. Sem ponto e vírgula no final.
+4.1. Aeroportos: a chave é a sigla IATA (airport, origin, dest). Quando a
+   pergunta citar uma CIDADE ou o nome do aeroporto ("Atlanta", "Chicago"),
+   filtre por airport_name ou airport_city com LIKE, nunca por igualdade
+   com a sigla. Ex.: WHERE airport_city LIKE '%Atlanta%'.
+4.2. Sempre que a resposta citar um aeroporto, inclua airport_label
+   (ou airport_name) no SELECT, para a frase sair com o nome e não só a sigla.
 
-2. Gere SOMENTE comandos SELECT. Nunca gere INSERT, UPDATE, DELETE, DROP,
-   ALTER, CREATE ou qualquer comando de escrita.
-3. Nunca use "SELECT *" — sempre liste as colunas explicitamente.
-4. Responda APENAS com a consulta SQL pura, sem markdown, sem explicação,
-   sem ponto e vírgula no final.
-5. Se a pergunta não tiver relação com voos, aeroportos, companhias aéreas,
-   rotas ou atrasos, responda exatamente com a palavra: {FORA_DE_CONTEXTO_TOKEN}
-   (nada mais, nenhuma outra palavra).
+Regras para o campo "resposta":
+5. Escreva uma frase natural em português que responda à pergunta, usando
+   {{nome_da_coluna}} como marcador onde entraria cada valor.
+   Exemplo: "A companhia com a maior taxa de atraso é a
+   {{op_unique_carrier}}, com uma taxa de {{delay_rate}}."
+   Para aeroportos, prefira o marcador {{airport_label}} ao {{airport}}.
+6. Use marcadores APENAS de colunas que aparecem no SELECT.
+7. NÃO escreva números você mesmo e NÃO use markdown (nada de ** ou #).
+   Os valores reais serão inseridos depois, já formatados.
+
+8. Se a pergunta não tiver relação com voos, aeroportos, companhias aéreas,
+   rotas ou atrasos, responda exatamente com:
+   {{"sql": "{FORA_DE_CONTEXTO_TOKEN}", "resposta": ""}}
 """.strip()
 
-    response = client.models.generate_content(
-        model=MODEL_NAME,
+    response = _call_gemini_with_fallback(
         contents=question,
         config={"system_instruction": system_instruction, "temperature": 0},
     )
 
-    return (response.text or "").strip()
+    plano = _extrair_json(response.text or "")
+    sql = (plano.get("sql") or "").strip()
+    molde = (plano.get("resposta") or "").strip()
+
+    if not sql:
+        raise ValueError("O modelo nao devolveu nenhuma consulta SQL.")
+
+    return sql, molde
 
 
 def validate_sql(sql: str) -> str:
@@ -161,30 +372,72 @@ def run_query(sql: str) -> list[dict]:
     return linhas
 
 
-def generate_natural_language_answer(question: str, sql: str, rows: list[dict]) -> str:
+def _formatar_valor(coluna: str, valor) -> str:
     """
-    ETAPA 20.6 — Traduz o resultado estruturado de volta para
-    linguagem natural, em português.
+    Formata um valor vindo do MySQL no padrao brasileiro.
+
+    Colunas *_rate chegam como fracao (0.2734) e viram "27,34%".
+    Inteiros ganham separador de milhar ("341.910") e decimais usam
+    virgula. Isso e feito em Python de proposito: o modelo nunca ve os
+    numeros, entao nao tem como arredondar errado nem inventar.
     """
-    dados_json = json.dumps(rows, default=str, ensure_ascii=False)
+    if valor is None:
+        return "nao informado"
 
-    prompt = f"""
-Pergunta original do usuário: {question}
+    if isinstance(valor, bool):
+        return "sim" if valor else "nao"
 
-Consulta SQL executada: {sql}
+    if isinstance(valor, (int, float, Decimal)):
+        numero = float(valor)
 
-Resultado (JSON): {dados_json}
+        if "rate" in coluna.lower():
+            return f"{numero * 100:.2f}".replace(".", ",") + "%"
 
-Responda a pergunta do usuário em português, de forma natural e direta,
-usando apenas os números presentes no resultado acima. Não invente dados
-que não estejam no resultado. Se o resultado estiver vazio, diga que não
-foram encontrados dados para essa pergunta.
-""".strip()
+        if numero.is_integer():
+            return f"{int(numero):,}".replace(",", ".")
 
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config={"temperature": 0.3},
-    )
+        return f"{numero:.2f}".replace(".", ",")
 
-    return (response.text or "").strip()
+    return str(valor)
+
+
+def _linha_legivel(linha: dict) -> str:
+    return ", ".join(f"{col}: {_formatar_valor(col, val)}" for col, val in linha.items())
+
+
+def format_answer(rows: list[dict], molde: str) -> str:
+    """
+    ETAPA 20.6 — Monta a resposta final SEM chamar o Gemini de novo.
+
+    Preenche os marcadores {coluna} do molde com os valores da primeira
+    linha. Se o molde vier vazio ou citar colunas que nao existem no
+    resultado, cai num resumo generico em vez de quebrar.
+    """
+    if not rows:
+        return "Nao foram encontrados dados para essa pergunta."
+
+    primeira = rows[0]
+    campos = re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", molde or "")
+    ausentes = [c for c in campos if c not in primeira]
+
+    if molde and campos and not ausentes:
+        resposta = molde
+        for coluna in campos:
+            resposta = resposta.replace(
+                "{" + coluna + "}", _formatar_valor(coluna, primeira[coluna])
+            )
+    else:
+        if molde and ausentes:
+            logger.warning(
+                "Molde cita colunas ausentes no resultado %s; usando resumo generico.",
+                ausentes,
+            )
+        resposta = f"Resultado encontrado — {_linha_legivel(primeira)}."
+
+    if len(rows) > 1:
+        extras = "; ".join(_linha_legivel(linha) for linha in rows[1:6])
+        resposta += f" Demais resultados: {extras}."
+        if len(rows) > 6:
+            resposta += f" (+{len(rows) - 6} linhas)"
+
+    return resposta

@@ -1,13 +1,17 @@
+import logging
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.services.ai_agent import (
-    generate_sql,
+    generate_plan,
     validate_sql,
     run_query,
-    generate_natural_language_answer,
+    format_answer,
     FORA_DE_CONTEXTO_TOKEN,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["AI Agent"])
 
@@ -38,7 +42,18 @@ def ask(request: ChatRequest) -> ChatResponse:
         )
 
     # ETAPA 21.5 — Responder somente sobre o contexto permitido
-    sql_gerado = generate_sql(pergunta)
+    # Uma unica chamada ao Gemini devolve o SQL e o molde da resposta.
+    try:
+        sql_gerado, molde_resposta = generate_plan(pergunta)
+    except Exception:
+        logger.exception("Falha ao gerar o plano para a pergunta: %r", pergunta)
+        return ChatResponse(
+            question=pergunta,
+            sql=None,
+            results=None,
+            answer="O assistente de IA está temporariamente indisponível, tente novamente em instantes.",
+            blocked=True,
+        )
 
     if sql_gerado.strip().upper() == FORA_DE_CONTEXTO_TOKEN:
         return ChatResponse(
@@ -69,6 +84,7 @@ def ask(request: ChatRequest) -> ChatResponse:
     try:
         linhas = run_query(sql_seguro)
     except Exception as erro:
+        logger.exception("Erro ao executar a consulta: %s", sql_seguro)
         return ChatResponse(
             question=pergunta,
             sql=sql_seguro,
@@ -77,7 +93,8 @@ def ask(request: ChatRequest) -> ChatResponse:
             blocked=True,
         )
 
-    resposta_natural = generate_natural_language_answer(pergunta, sql_seguro, linhas)
+    # Formatacao local: nao gasta cota e nao depende da API estar de pe.
+    resposta_natural = format_answer(linhas, molde_resposta)
 
     return ChatResponse(
         question=pergunta,
