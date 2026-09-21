@@ -83,13 +83,16 @@ def ask(request: ChatRequest) -> ChatResponse:
     # Execução (somente leitura)
     try:
         linhas = run_query(sql_seguro)
-    except Exception as erro:
+    except Exception:
+        # O erro completo vai para o log; o usuario recebe uma mensagem
+        # generica. A mensagem crua do MySQL descreve a estrutura interna
+        # do banco e nao deve sair pela API.
         logger.exception("Erro ao executar a consulta: %s", sql_seguro)
         return ChatResponse(
             question=pergunta,
             sql=sql_seguro,
             results=None,
-            answer=f"Erro ao consultar o banco de dados: {erro}",
+            answer="Nao foi possivel consultar o banco de dados para essa pergunta.",
             blocked=True,
         )
 

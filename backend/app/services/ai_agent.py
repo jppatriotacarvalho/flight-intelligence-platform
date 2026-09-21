@@ -14,7 +14,23 @@ logger = logging.getLogger(__name__)
 # ETAPA 20 — Configuração do cliente Gemini
 # ============================================================
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# O cliente e' criado na primeira chamada, nao no import. Instanciar aqui
+# fazia a API INTEIRA quebrar no boot quando GEMINI_API_KEY faltava — o
+# dashboard e os endpoints de dados nao dependem do Gemini e nao tem por
+# que cair junto com ele.
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY nao configurada: o agente de IA esta indisponivel."
+            )
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 # Modelos confirmados como disponíveis para esta chave.
 # "gemini-2.5-flash" foi removido da cadeia: a API devolve 404 permanente
@@ -133,7 +149,7 @@ def _call_gemini_with_fallback(contents, config):
                 break
 
             try:
-                return client.models.generate_content(
+                return _get_client().models.generate_content(
                     model=modelo,
                     contents=contents,
                     config=_config_com_timeout(
@@ -213,9 +229,24 @@ ALLOWED_TABLES: dict[str, list[str]] = {
 # ============================================================
 
 FORBIDDEN_KEYWORDS = [
+    # Escrita e DDL
     "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",
     "TRUNCATE", "GRANT", "REVOKE", "REPLACE", "MERGE", "CALL", "EXEC",
+    # Escrita/leitura de ARQUIVO a partir de um SELECT. Sem isto,
+    # "SELECT origin INTO OUTFILE '/tmp/x' FROM route_performance" passava
+    # nas tres validacoes: comeca com SELECT, tabela na whitelist, nenhuma
+    # keyword proibida.
+    "INTO", "OUTFILE", "DUMPFILE", "LOAD_FILE", "LOAD",
+    # Negacao de servico por tempo de execucao
+    "SLEEP", "BENCHMARK", "GET_LOCK",
+    # Comandos de sessao e statements preparados
+    "SET", "USE", "SHOW", "DESCRIBE", "EXPLAIN", "HANDLER",
+    "PREPARE", "EXECUTE", "DEALLOCATE",
 ]
+
+# Comentario dentro da consulta: nao ha motivo legitimo para o modelo gerar um,
+# e e' o jeito classico de esconder o resto de um payload.
+COMMENT_MARKERS = ("--", "#", "/*")
 
 MAX_ROW_LIMIT = 100
 
@@ -330,6 +361,14 @@ def validate_sql(sql: str) -> str:
 
     if not re.match(r"^\s*SELECT\s", sql_limpo, re.IGNORECASE):
         raise ValueError("Apenas consultas SELECT são permitidas.")
+
+    for marcador in COMMENT_MARKERS:
+        if marcador in sql_limpo:
+            raise ValueError("Comentarios nao sao permitidos na consulta.")
+
+    # Variaveis de sessao/sistema (@@version, @x) nao tem uso legitimo aqui.
+    if "@" in sql_limpo:
+        raise ValueError("Uso de variaveis nao e permitido na consulta.")
 
     sql_upper = sql_limpo.upper()
     for palavra in FORBIDDEN_KEYWORDS:
