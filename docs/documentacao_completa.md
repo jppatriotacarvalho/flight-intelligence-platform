@@ -4,6 +4,10 @@
 > desenvolvimento do projeto, organizada na ordem das fases do plano de
 > execução. Cada seção abaixo corresponde a um documento que guiou uma
 > etapa específica do trabalho.
+>
+> ⚙️ **Arquivo gerado.** Não edite aqui: altere o documento de origem em
+> `docs/` e rode `python scripts/gerar_documentacao.py`.
+
 
 ---
 
@@ -15,11 +19,12 @@
 4. [Perguntas de Negócio](#4-perguntas-de-negócio)
 5. [Regras de Transformação (Silver)](#5-regras-de-transformação-silver)
 6. [KPIs e Regras de Negócio](#6-kpis-e-regras-de-negócio)
-7. [Arquitetura Geral](#7-arquitetura-geral)
-8. [Modelo de Banco de Dados](#8-modelo-de-banco-de-dados)
-9. [Segurança do Agente de IA](#9-segurança-do-agente-de-ia)
-10. [Testes Realizados](#10-testes-realizados)
-11. [Log de Decisões Técnicas](#11-log-de-decisões-técnicas)
+7. [Execução com o Dataset Completo](#7-execução-com-o-dataset-completo)
+8. [Arquitetura Geral](#8-arquitetura-geral)
+9. [Modelo de Banco de Dados](#9-modelo-de-banco-de-dados)
+10. [Agente de IA — Segurança e Resiliência](#10-agente-de-ia-segurança-e-resiliência)
+11. [Testes Realizados](#11-testes-realizados)
+12. [Log de Decisões Técnicas](#12-log-de-decisões-técnicas)
 
 ---
 
@@ -30,12 +35,11 @@
 
 <a id="1-problema-de-negócio"></a>
 
-
 ### Qual problema estamos resolvendo?
 
-O setor aéreo gera diariamente um grande volume de dados sobre voos, horários, atrasos, cancelamentos, desvios, companhias aéreas, aeroportos e rotas. Esses dados, no entanto, costumam existir de forma bruta, fragmentada, espalhados em diferentes fontes e sem padronização. Não permitindo uma análise ou tomada de decisão com mais qualidade.
+O setor aéreo gera diariamente um grande volume de dados sobre voos, horários, atrasos, cancelamentos, desvios, companhias aéreas, aeroportos e rotas. Esses dados, no entanto, costumam existir de forma bruta, fragmentada, espalhados em diferentes fontes e sem padronização. Dificultando uma análise ou tomada de decisão com mais qualidade.
 
-O problema central é a ausência de uma plataforma que transforme esse volume de dados brutos em informação confiável, estruturada e acessível. Hoje é difícil responder perguntas simples como "qual companhia atrasa mais" ou "qual aeroporto tem maior taxa de cancelamento" sem um processo manual, demorado e sujeito a erro.
+O problema central é a ausência de uma plataforma que transforme esse volume de dados brutos em informação confiável, estruturada e acessível: hoje é difícil responder perguntas simples como "qual companhia atrasa mais" ou "qual aeroporto tem maior taxa de cancelamento" sem um processo manual, demorado e sujeito a erro.
 
 Este projeto resolve esse problema construindo um pipeline completo de dados — desde a ingestão de milhões de registros até a disponibilização de métricas confiáveis via API, dashboard e um agente de IA capaz de responder perguntas em linguagem natural.
 
@@ -43,12 +47,12 @@ Este projeto resolve esse problema construindo um pipeline completo de dados —
 
 ### Quem poderia utilizar a plataforma?
 
-- **Companhias aéreas** — para monitorar sua própria performance operacional (pontualidade, atrasos, cancelamentos) e se comparar com o mercado.
+- **Companhias aéreas** — para monitorar sua própria performance operacional e se comparar com o mercado.
 - **Aeroportos** — para entender seu desempenho operacional e identificar gargalos.
 - **Analistas de dados / BI** — para explorar tendências do setor aéreo sem precisar processar o dataset bruto.
 - **Áreas de operações e planejamento** — para embasar decisões sobre rotas, horários e alocação de recursos.
 - **Passageiros e público em geral** (uso exploratório) — para entender quais companhias, aeroportos e rotas são historicamente mais pontuais.
-- **Recrutadores e comunidade técnica** — como demonstração de portfólio de um pipeline de dados de ponta a ponta.
+
 
 ---
 
@@ -56,8 +60,7 @@ Este projeto resolve esse problema construindo um pipeline completo de dados —
 
 - Priorização de rotas ou aeroportos que exigem ações para reduzir atrasos.
 - Avaliação comparativa de companhias aéreas quanto à pontualidade e confiabilidade.
-- Identificação de períodos do ano (meses, dias da semana) com maior risco operacional.
-- Investigação dos principais motivos de atraso (clima, aeronave, segurança, tráfego aéreo) para direcionar investimentos ou mudanças operacionais.
+- Investigação dos principais motivos de atraso, que podem ser o clima, aeronave, segurançae tráfego aéreo, para direcionar investimentos ou mudanças operacionais.
 - Escolha de rotas ou companhias por parte de quem está planejando uma viagem, com base em dados históricos de pontualidade.
 
 ---
@@ -74,17 +77,12 @@ Este projeto resolve esse problema construindo um pipeline completo de dados —
 
 ---
 
-### 📤 Status
-
-🚧 Documento inicial — Etapa 1 do plano de execução. Sujeito a ajustes conforme o projeto avança.
-
 
 ---
 
 # 2. Dicionário de Dados
 
 <a id="2-dicionário-de-dados"></a>
-
 
 Fonte: `flight_data_2024_data_dictionary.csv`
 
@@ -231,7 +229,6 @@ Total de colunas confirmado: **35**
 
 <a id="3-análise-exploratória-e-qualidade"></a>
 
-
 Fonte: `flight_data_2024_sample.csv` (10.000 registros, 35 colunas)
 
 > Este documento segue a regra do plano: **analisar, entender e documentar
@@ -245,11 +242,11 @@ Fonte: `flight_data_2024_sample.csv` (10.000 registros, 35 colunas)
 
 - Linhas: **10.000**
 - Colunas: **35**
-- Schema e tipos batem com o `data_dictionary.csv` (ver seção 7.4).
+- Schema e tipos batem com o `data_dictionary.csv` (ver seção 7.2).
 
 ---
 
-### 7.4 — Comparação Data Dictionary vs Sample
+### 7.2 — Comparação Data Dictionary vs Sample
 
 | Item | Resultado |
 |---|---|
@@ -264,7 +261,7 @@ Fonte: `flight_data_2024_sample.csv` (10.000 registros, 35 colunas)
 
 ---
 
-### 7.2 — Valores Nulos
+### 7.3 — Valores Nulos
 
 | Coluna | Nulos | % |
 |---|---:|---:|
@@ -282,11 +279,21 @@ Fonte: `flight_data_2024_sample.csv` (10.000 registros, 35 colunas)
 
 Todas as demais colunas: **0% de nulos**.
 
-Os percentuais batem com os valores já registrados no `data_dictionary.md`.
+Os percentuais ficam próximos dos registrados no `data_dictionary.md`, mas
+não são idênticos — e não deveriam ser: esta análise roda sobre o sample de
+10.000 registros, enquanto o dicionário descreve o dataset completo de
+7.079.081. A diferença é de fração de ponto percentual e confirma que o
+sample é representativo.
+
+| Coluna | Sample (10k) | Dicionário (completo) |
+|---|---:|---:|
+| `dep_delay` | 1,16% | 1,31% |
+| `arr_delay` | 1,64% | 1,61% |
+| `cancellation_code` | 98,78% | 98,64% |
 
 ---
 
-### 7.3 — Duplicatas
+### 7.4 — Duplicatas
 
 - Linhas 100% duplicadas: **0**
 - Duplicatas usando chave composta (`fl_date + op_unique_carrier + op_carrier_fl_num + origin + dest`): **0**
@@ -295,7 +302,7 @@ Os percentuais batem com os valores já registrados no `data_dictionary.md`.
 
 ---
 
-### 7.4b — Valores Únicos (Categóricos)
+### 7.5 — Valores Únicos (Categóricos)
 
 | Coluna | Valores únicos |
 |---|---:|
@@ -311,7 +318,7 @@ Os percentuais batem com os valores já registrados no `data_dictionary.md`.
 
 ---
 
-### 7.5 — Valores Numéricos
+### 7.6 — Valores Numéricos
 
 | Coluna | Min | Máx | Média | Mediana |
 |---|---:|---:|---:|---:|
@@ -328,7 +335,7 @@ Existem alguns voos com atraso de partida/chegada acima de 2.000 minutos (~33h).
 
 ---
 
-### 7.6 — Datas (`fl_date`)
+### 7.7 — Datas (`fl_date`)
 
 - Datas inválidas: **0**
 - Intervalo: `2024-01-01` até `2024-12-31`
@@ -338,7 +345,7 @@ Existem alguns voos com atraso de partida/chegada acima de 2.000 minutos (~33h).
 
 ---
 
-### 7.7 — Horários (`crs_dep_time`, `crs_arr_time`)
+### 7.8 — Horários (`crs_dep_time`, `crs_arr_time`)
 
 - Valores fora do range válido (0–2359): **0**
 - `crs_dep_time`: min 22, max 2359
@@ -347,7 +354,7 @@ Existem alguns voos com atraso de partida/chegada acima de 2.000 minutos (~33h).
 
 ---
 
-### 7.8 — Atrasos
+### 7.9 — Atrasos
 
 - `dep_delay`: 5.784 negativos / 437 zeros / 3.663 positivos
 - `arr_delay`: 6.092 negativos / 166 zeros / 3.578 positivos
@@ -400,7 +407,6 @@ Confirma o que o plano já alertava: **atraso negativo é válido** e representa
 # 4. Perguntas de Negócio
 
 <a id="4-perguntas-de-negócio"></a>
-
 
 Este documento define as perguntas que a plataforma deve conseguir responder.
 Elas servem de guia para o desenho das tabelas Gold (Etapa 14), dos KPIs
@@ -484,7 +490,6 @@ dado que não existe no dataset.
 # 5. Regras de Transformação (Silver)
 
 <a id="5-regras-de-transformação-silver"></a>
-
 
 Este documento transforma os achados do `data_quality.md` (Etapa 7) em regras
 formais de decisão, seguindo o fluxo obrigatório do plano:
@@ -622,7 +627,7 @@ PROBLEMA → EVIDÊNCIA → DECISÃO → TRANSFORMAÇÃO → VALIDAÇÃO
 |---|---|
 | Data do voo não nula | `fl_date IS NOT NULL` |
 | Origem não nula | `origin IS NOT NULL` |
-| Destino não nulo | `destination IS NOT NULL` |
+| Destino não nulo | `dest IS NOT NULL` |
 | Rota coerente | `origin != dest` |
 | Distância válida | `distance > 0` |
 
@@ -635,6 +640,31 @@ PROBLEMA → EVIDÊNCIA → DECISÃO → TRANSFORMAÇÃO → VALIDAÇÃO
   no resumo da execução (já implementado no código, variável
   `qtd_invalidos`, testado na Etapa 12 com resultado 0 e na Etapa 15 com
   resultado 0 também).
+
+---
+
+### Regra 11 — Nome do aeroporto (`silver.dim_airports`)
+
+- **Problema:** as tabelas expõem apenas a sigla IATA (`ATL`, `ORD`, `DFW`).
+  Quem não conhece os códigos não entende o dashboard nem as respostas do
+  agente de IA.
+- **Decisão:** criar `silver.dim_airports` — uma linha por sigla, com o nome
+  (cidade/UF), cidade, estado e um rótulo pronto (`ATL - Atlanta, GA`).
+- **Origem do nome:** colunas `origin_city_name` / `dest_city_name` do próprio
+  dataset BTS. Nenhum dado externo é digitado à mão, então todo nome é
+  rastreável até a Bronze. O dataset não traz o nome oficial do terminal
+  ("Hartsfield-Jackson"), apenas cidade/UF.
+- **Por que uma dimensão, e não substituir a sigla:** o nome **não é chave**.
+  "Chicago, IL" é ORD *e* MDW; "Houston, TX" é IAH *e* HOU; "Washington, DC"
+  é DCA *e* IAD. Agrupar por nome somaria aeroportos distintos no mesmo
+  registro e inflaria as métricas. A sigla continua sendo a chave; o nome
+  entra como atributo descritivo.
+- **Construção:** empilha origem e destino (`unionByName`) para não perder
+  aeroportos que só aparecem como destino, conta as ocorrências de cada par
+  sigla/cidade e mantém a grafia mais frequente (`row_number` sobre janela
+  por sigla) — garante exatamente 1 linha por código.
+- **Validação:** `count()` da dimensão igual ao número de siglas distintas, e
+  zero nulos em `airport_name` após o join na Gold.
 
 ---
 
@@ -652,6 +682,7 @@ PROBLEMA → EVIDÊNCIA → DECISÃO → TRANSFORMAÇÃO → VALIDAÇÃO
 | 08 | Formato de horário hhmm | Manter |
 | 09 | Duplicatas | Remover (proteção) |
 | 10 | Validações estruturais | Filtrar/remover se violado |
+| 11 | Sigla ilegível para o usuário | Dimensão `silver.dim_airports` (sigla continua a chave) |
 
 ---
 
@@ -667,7 +698,6 @@ Desenvolvimento Silver**, gerando `silver.flights_clean`.
 # 6. KPIs e Regras de Negócio
 
 <a id="6-kpis-e-regras-de-negócio"></a>
-
 
 Fonte: `silver.flights_clean`
 
@@ -809,17 +839,80 @@ Cada KPI abaixo existe para responder pelo menos uma pergunta definida em
 
 ---
 
-# 7. Arquitetura Geral
+# 7. Execução com o Dataset Completo
 
-<a id="7-arquitetura-geral"></a>
+<a id="7-execução-com-o-dataset-completo"></a>
 
+### Ambiente
+
+- **Plataforma:** Databricks Free Edition
+- **Compute:** Serverless (sem cluster configurado manualmente)
+- **Arquivo de origem:** `flight_data_2024.csv` (~1,28 GB descompactado)
+- **Local de upload:** `/Volumes/workspace/default/dado_bruto_de_voos/flight_data_2024.csv`
+
+---
+
+### Resultados por Camada
+
+| Camada | Entrada | Saída | Registros removidos | Tempo de execução |
+|---|---:|---:|---:|---:|
+| 🥉 Bronze | CSV completo | 7.079.081 | — (ingestão bruta) | 15.9s |
+| 🥈 Silver | 7.079.081 | 7.079.081 | 0 inválidos / 0 duplicatas | 21.5s |
+| 🥇 Gold | 7.079.081 | 5 tabelas analíticas | — (agregação) | 20.7s |
+
+**Tempo total do pipeline: ~58.1s**
+
+---
+
+### Tabelas Gold Criadas
+
+| Tabela | Registros | Granularidade |
+|---|---:|---|
+| `gold.airline_performance` | 15 | 1 por companhia |
+| `gold.airport_performance` | 348 | 1 por aeroporto (origem) |
+| `gold.route_performance` | 6.805 | 1 por rota (origem+destino) |
+| `gold.delay_causes` | 1 | agregado único |
+| `gold.flight_trends` | 12 | 1 por mês |
+
+---
+
+### Validação — Comparação Sample vs Dataset Completo
+
+| Métrica | Sample (10k) | Completo (7.079.081) | Observação |
+|---|---:|---:|---|
+| Companhias únicas | 15 | 15 | Igual — número fixo de grandes companhias no mercado americano |
+| Aeroportos únicos | 284 | 348 | Cresceu — aeroportos menores só aparecem com mais volume |
+| Rotas únicas | 3.591 | 6.805 | Quase dobrou — mais combinações origem/destino aparecem |
+| Registros inválidos (Regra 10) | 0 | 0 | Consistente |
+| Duplicatas (Regra 09) | 0 | 0 | Consistente |
+
+✅ O comportamento do dataset completo é coerente com o que foi validado no
+sample — nenhuma regra da Silver precisou de ajuste ao escalar de 10 mil para
+7 milhões de registros.
+
+---
+
+### 📤 Status
+
+✅ Etapa 15 concluída. Pipeline Bronze → Silver → Gold executado com sucesso
+sobre o dataset completo, sem perdas inesperadas e com tempo de execução
+adequado ao Free Edition.
+⏭️ Próximo passo: Etapa 16 — Banco de Dados (exportar as tabelas Gold para
+consumo externo ao Databricks).
+
+
+---
+
+# 8. Arquitetura Geral
+
+<a id="8-arquitetura-geral"></a>
 
 ### 📂 Origem dos Dados
 
 Dataset **Flight Delay Dataset — 2024**, obtido via Kaggle, com origem
 original na **BTS TranStats — On-Time Performance Database**. Licença
-**CC0 — Creative Commons Zero**. Mais de 7 milhões de registros e 35 colunas
-sobre performance de voos domésticos nos EUA em 2024.
+**CC0 — Creative Commons Zero**. **7.079.081 registros** e 35 colunas sobre
+performance de voos domésticos nos EUA em 2024 (~1,28 GB descompactado).
 
 Detalhes completos em `docs/business_problem.md` e no `README.md`.
 
@@ -829,14 +922,13 @@ Detalhes completos em `docs/business_problem.md` e no `README.md`.
 
 ```text
                     📂 DATASET
-                        │
-                        ▼
-                   📥 INGESTÃO
-                     PySpark
+                     CSV 1,28 GB
                         │
                         ▼
                  🥉 BRONZE LAYER
                   Dados Brutos
+              (a leitura do CSV é a
+              1ª célula do notebook)
                         │
                         ▼
                  🥈 SILVER LAYER
@@ -849,37 +941,39 @@ Detalhes completos em `docs/business_problem.md` e no `README.md`.
                         ▼
                    MYSQL
                         │
+                        ▼
+                BACKEND / API
+                   FastAPI
+                        │
              ┌──────────┴──────────┐
              │                     │
              ▼                     ▼
-         BACKEND               DASHBOARD
-             │                     │
-             └──────────┬──────────┘
-                        │
-                        ▼
-                    FRONTEND
-                        │
-                        ▼
-                   🤖 GEMINI
-                  AGENTE DE IA
+         FRONTEND             🤖 GEMINI
+      React + Dashboard      AGENTE DE IA
 ```
 
 O pipeline de dados (Bronze → Silver → Gold) roda no **Databricks** com
 **PySpark**, gravando tabelas em formato **Delta Lake**. As tabelas Gold são
-posteriormente carregadas em um banco **MySQL**, que serve tanto o
-**backend/API** quanto o **dashboard**, e o **agente de IA (Gemini)** consulta
-o MySQL de forma controlada, apenas leitura, via o backend.
+posteriormente carregadas em um banco **MySQL**, que serve o **backend/API**,
+que por sua vez alimenta o **frontend/dashboard**. O **agente de IA (Gemini)**
+nunca toca o banco diretamente: ele gera SQL, que o backend valida e executa
+em modo somente leitura.
+
+**Não existe uma camada de ingestão separada.** A leitura do CSV com schema
+explícito é a primeira célula do notebook Bronze — é lá que o dado entra no
+pipeline. A pasta `notebooks/01_ingestion/` foi removida por ser resquício do
+plano original.
 
 ---
 
-### 🥉🥈🥇 Camadas (Arquitetura Medalhão) — Etapa 9
+### 🥉🥈🥇 Camadas (Arquitetura Medalhão)
 
 #### 🥉 Bronze — `bronze.flights_raw`
 
 **Objetivo:** armazenar os dados o mais próximo possível da origem.
 
 **Pode:**
-- Ler o CSV
+- Ler o CSV com schema explícito
 - Adicionar metadados de rastreabilidade (`ingestion_timestamp`, `source_file`)
 - Converter para Delta Lake
 
@@ -888,23 +982,34 @@ o MySQL de forma controlada, apenas leitura, via o backend.
 - Criar KPIs ou agregações
 - Aplicar qualquer regra de negócio
 
-**Status:** ✅ implementada (Etapa 10). 35 colunas originais + 2 colunas de metadados. Contagem validada 1:1 contra o CSV de origem (10.000 → 10.000 no sample).
+**Status:** ✅ implementada. 35 colunas originais + 2 colunas de metadados.
+Executada sobre o dataset completo: **7.079.081 registros em 15,9s**, contagem
+validada 1:1 contra o CSV de origem. Notebook em `notebooks/02_bronze/`.
 
 ---
 
-#### 🥈 Silver — `silver.flights_clean`
+#### 🥈 Silver — `silver.flights_clean` e `silver.dim_airports`
 
 **Objetivo:** gerar dados confiáveis — limpos, padronizados, tipados e validados.
 
-**Transformações aplicadas** (detalhadas em `docs/silver_rules.md`):
+**Transformações aplicadas** (11 regras detalhadas em `docs/silver_rules.md`):
 - Conversão de tipo (`op_carrier_fl_num` → integer)
 - Padronização de texto (trim + maiúsculas em códigos)
 - Flag de atraso extremo (`is_extreme_delay`)
 - Validações estruturais (data, origem, destino, rota, distância)
 - Remoção de duplicatas exatas
-- **Nulos legítimos mantidos** (não imputados) — voos cancelados/desviados não têm todos os campos de horário preenchidos por definição, e isso é esperado, não é erro.
+- **Regra 11 — `silver.dim_airports`:** dimensão de aeroportos derivada das
+  próprias colunas `origin_city_name`/`dest_city_name` do dataset, chaveada
+  pela sigla IATA. É o que permite mostrar "Atlanta, GA" ao lado de `ATL`
+  sem depender de dado externo (Decisão 03).
+- **Nulos legítimos mantidos** (não imputados) — voos cancelados/desviados
+  não têm todos os campos de horário preenchidos por definição, e isso é
+  esperado, não é erro.
 
-**Status:** ✅ implementada (Etapa 12). Validado no sample: 10.000 registros na Bronze → 10.000 na Silver (nenhuma perda, nenhum problema estrutural encontrado).
+**Status:** ✅ implementada. Sobre o dataset completo: 7.079.081 registros na
+Bronze → **7.079.081 na Silver em 21,5s** (0 inválidos, 0 duplicatas).
+Nenhuma regra precisou de ajuste ao escalar de 10 mil para 7 milhões.
+Notebook em `notebooks/03_silver/`.
 
 ---
 
@@ -917,56 +1022,71 @@ API, dashboard e agente de IA.
 (`docs/business_questions.md`) e implemente um KPI documentado
 (`docs/business_rules.md`) — nunca criar tabela "porque estava no plano".
 
-**Tabelas planejadas** (Etapa 14):
+**Tabelas implementadas** (5 tabelas, geradas em 20,7s):
 
-| Tabela | Granularidade | KPIs/Perguntas atendidas |
-|---|---|---|
-| `gold.airline_performance` | 1 registro = 1 companhia | Taxa de atraso, atraso médio, cancelamento por companhia |
-| `gold.airport_performance` | 1 registro = 1 aeroporto | Atraso médio, volume, cancelamento por aeroporto |
-| `gold.route_performance` | 1 registro = origem + destino | Volume, atraso médio, distância por rota |
-| `gold.delay_causes` | agregado por motivo | Distribuição de motivos de atraso |
-| `gold.flight_trends` | 1 registro = mês | Evolução de atrasos ao longo do ano |
+| Tabela | Registros | Granularidade | KPIs/Perguntas atendidas |
+|---|---:|---|---|
+| `gold.airline_performance` | 15 | 1 = 1 companhia | Taxa de atraso, atraso médio, cancelamento por companhia |
+| `gold.airport_performance` | 348 | 1 = 1 aeroporto de origem | Atraso médio, volume, cancelamento por aeroporto |
+| `gold.route_performance` | 6.805 | 1 = origem + destino | Volume, atraso médio, distância por rota |
+| `gold.delay_causes` | 1 | agregado único | Distribuição de motivos de atraso |
+| `gold.flight_trends` | 12 | 1 = 1 mês | Evolução de atrasos ao longo do ano |
+
+**Colunas descritivas (Decisão 03):** `airport_performance` carrega
+`airport_name`, `airport_city`, `airport_state` e `airport_label`;
+`route_performance` carrega `origin_name` e `dest_name`. Todas vêm de um join
+com `silver.dim_airports`. **A sigla IATA continua sendo a chave** — o nome
+não é único (ORD e MDW são ambos "Chicago, IL"), então agrupar por nome
+fundiria aeroportos distintos e corromperia as métricas.
 
 **Consumidores:** MySQL → API (backend) → Dashboard e Agente de IA.
+Notebook em `notebooks/04_gold/`.
 
 ---
 
 ### 🐬 Banco de Dados
 
-> ⚠️ **Nota de decisão:** o plano original previa PostgreSQL. Por preferência
-> de ferramental (MySQL Workbench), o projeto passou a usar **MySQL**.
-> Decisão completa registrada em `docs/decision_log.md` (Decisão 01).
+**MySQL** (Decisão 01 — o plano original previa PostgreSQL). Recebe as
+tabelas Gold para consumo por aplicações externas ao Databricks.
 
-MySQL recebe as tabelas Gold para consumo por aplicações externas ao
-Databricks. Modelo escolhido: **tabelas analíticas diretas** (sem esquema
-dimensional), já que as tabelas Gold chegam prontas e agregadas — detalhes e
-justificativa completa em `docs/database_model.md`.
+**Modelo: tabelas analíticas diretas** — uma tabela MySQL por tabela Gold,
+sem esquema estrela. As tabelas Gold já chegam agregadas e com propósito
+definido; um modelo dimensional por cima adicionaria complexidade sem ganho
+de flexibilidade. Decisão completa e validação 1:1 da importação em
+`docs/database_model.md`.
 
-**Status:** ✅ Etapa 16 concluída. Banco `flight_intelligence` criado com 5
-tabelas (`airline_performance`, `airport_performance`, `route_performance`,
-`delay_causes`, `flight_trends`), populadas e validadas 1:1 contra as tabelas
-Gold do Databricks (7.079.081 voos processados na origem).
+**5 tabelas e 6 índices** (`database/schema.sql`):
+`idx_route_origin`, `idx_route_dest`, `idx_airline_delay_rate`,
+`idx_airport_delay_rate`, `idx_airport_name`, `idx_airport_city`.
 
 ---
 
 ### 🚀 Backend / API
 
-Camada de API (Etapa 17, tecnologia a definir entre Java/Spring Boot ou
-Python/FastAPI) expõe as tabelas Gold via endpoints REST, com filtros por
-companhia, aeroporto, rota e período.
+**Python + FastAPI** (Decisão 02 — o plano deixava em aberto entre
+Java/Spring Boot e Python/FastAPI). Conecta ao MySQL via SQLAlchemy e expõe
+as tabelas Gold em endpoints REST, com documentação interativa automática em
+`/docs` (Swagger/OpenAPI).
+
+`GET /airports` aceita o parâmetro `?search=`, que casa por prefixo da sigla,
+por nome ou por cidade — quem sabe a sigla digita "ATL", quem não sabe digita
+"Atlanta" e chega no mesmo registro.
 
 ---
 
 ### 💻 Frontend
 
-Aplicação React + TypeScript (Etapa 18) consome a API para exibir dashboard,
-páginas de companhias/aeroportos/rotas/atrasos e o chat com o agente de IA.
+Aplicação **React + TypeScript (Vite)** que consome a API para exibir o
+dashboard e as páginas de companhias, aeroportos, rotas, atrasos e o chat com
+o agente de IA. Componentes reutilizáveis (`KpiCard`, `BarList`, `TrendLine`,
+`CauseDonut`, `FilterBar`, `DataTable`, `PageState`) e formatação numérica
+centralizada em `src/lib/format.ts`.
 
 ---
 
 ### 📊 Dashboard
 
-Visualizações (Etapa 19) construídas a partir dos KPIs definidos em
+Visualizações construídas a partir dos KPIs definidos em
 `docs/business_rules.md`: total de voos, taxa de atraso, atraso médio, taxa
 de cancelamento, companhia mais pontual, aeroporto mais atrasado, gráficos de
 comparação por companhia/aeroporto/rota e evolução temporal.
@@ -975,18 +1095,30 @@ comparação por companhia/aeroporto/rota e evolução temporal.
 
 ### 🤖 Agente de IA
 
-Agente baseado na Gemini API (Etapas 20 e 21) responde perguntas em
-linguagem natural, traduzindo para SQL controlado (somente `SELECT`,
-whitelist de tabelas/colunas Gold, `LIMIT` obrigatório, sem acesso a
-Bronze/Silver/credenciais). Fluxo completo documentado nas Etapas 20 e 21 do
-plano mestre.
+Agente baseado na **Gemini API** que responde perguntas em linguagem natural
+traduzindo-as para SQL controlado. Documentação completa da superfície de
+segurança em `docs/ai_agent_security.md`.
 
----
+**Pipeline por pergunta:**
 
-### 📤 Status
+1. **Uma única chamada** ao Gemini devolve, no mesmo JSON, a consulta SQL e um
+   molde de resposta com marcadores `{coluna}`.
+2. O SQL passa pelo validador: somente `SELECT`, comando único, whitelist de
+   tabelas Gold, sem `SELECT *`, sem comentários, sem variáveis, sem as
+   keywords proibidas (escrita, DDL, acesso a arquivo, funções de tempo) e
+   com `LIMIT` garantido (teto de 100 linhas).
+3. A consulta roda em modo leitura no MySQL.
+4. Os marcadores do molde são preenchidos **em Python**, com os valores já
+   formatados no padrão brasileiro.
 
-✅ Arquitetura geral e papel das camadas documentados — Etapas 3 e 9 concluídas.
-⏭️ Próximo passo: implementação das tabelas Gold (Etapa 14).
+**Por que o molde:** o modelo nunca chega a ver os dados retornados, então não
+tem como arredondar errado nem inventar número. E como são duas etapas numa
+chamada só, o consumo da cota diária do free tier cai pela metade.
+
+**Resiliência:** cadeia de fallback entre 6 modelos Gemini, com retentativa
+apenas em erro transitório (503) e descarte imediato em 429 de cota. Modelos
+que estouraram a cota entram em cooldown de 15 minutos. Teto de 45s para a
+cadeia inteira e 25s por chamada, para o frontend nunca ficar pendurado.
 
 ---
 
@@ -1012,7 +1144,9 @@ leve, sem as dependências de desenvolvimento do Node.
 **Como subir:** `docker compose up --build` na raiz do projeto, com um
 `.env` preenchido (ver `.env.example`). Detalhes completos no `README.md`.
 
-### 📤 Status Final da Arquitetura
+---
+
+### 📤 Status
 
 ✅ Pipeline de dados, banco, backend, frontend, agente de IA e
 containerização — todos implementados, testados e documentados.
@@ -1020,14 +1154,14 @@ containerização — todos implementados, testados e documentados.
 
 ---
 
-# 8. Modelo de Banco de Dados
+# 9. Modelo de Banco de Dados
 
-<a id="8-modelo-de-banco-de-dados"></a>
-
+<a id="9-modelo-de-banco-de-dados"></a>
 
 ### Decisão: Tabelas Analíticas Diretas
 
-**Alternativas consideradas:** tabelas analíticas diretas vs. modelo dimensional (fato + dimensões).
+**Alternativas consideradas:** tabelas analíticas diretas vs. modelo
+dimensional (fato + dimensões).
 
 **Decisão:** tabelas analíticas diretas — uma tabela MySQL por tabela Gold,
 sem transformar em esquema estrela.
@@ -1054,12 +1188,19 @@ prontas, não fazendo OLAP livre sobre voo individual).
 | `delay_causes` | `gold.delay_causes` | `id` (linha única) |
 | `flight_trends` | `gold.flight_trends` | `month` |
 
----
+#### Colunas descritivas de aeroporto (Decisão 03)
 
-### 📤 Status
+`airport_performance` e `route_performance` carregam o nome do aeroporto
+junto da sigla — a sigla continua sendo a chave (o nome não é único: ORD e
+MDW são ambos "Chicago, IL").
 
-✅ Modelo definido e justificado — item 16.2 da Etapa 16.
-⏭️ Próximo passo: criar o schema (16.3), importar os dados e criar índices (16.4).
+| Tabela | Colunas acrescentadas | Origem |
+|---|---|---|
+| `airport_performance` | `airport_name`, `airport_city`, `airport_state`, `airport_label` | join com `silver.dim_airports` na Gold |
+| `route_performance` | `origin_name`, `dest_name` | idem, um join por ponta da rota |
+
+Índices `idx_airport_name` e `idx_airport_city` apoiam a busca por nome na
+página de Aeroportos e no agente de IA.
 
 ---
 
@@ -1073,41 +1214,80 @@ prontas, não fazendo OLAP livre sobre voo individual).
 | delay_causes | 1 | 1 | ✅ |
 | flight_trends | 12 | 12 | ✅ |
 
-Todos os registros migrados sem perda. Índices criados conforme item 16.4.
+Todos os registros migrados sem perda. Índices criados conforme item 16.4
+(ver `database/schema.sql`).
 
 ### 📤 Status Final
 
 ✅ Etapa 16 concluída — banco `flight_intelligence` criado no MySQL, com as 5
 tabelas populadas e validadas 1:1 contra as tabelas Gold do Databricks.
-⏭️ Próximo passo: Etapa 17 — Backend (API).
 
 
 ---
 
-# 9. Segurança do Agente de IA
+# 10. Agente de IA — Segurança e Resiliência
 
-<a id="9-segurança-do-agente-de-ia"></a>
+<a id="10-agente-de-ia-segurança-e-resiliência"></a>
 
+Este documento formaliza o que está implementado em
+`backend/app/services/ai_agent.py` e `backend/app/routers/chat.py`.
 
-Este documento formaliza as regras de segurança implementadas em
-`backend/app/services/ai_agent.py`, seguindo o pipeline obrigatório do plano:
+Pipeline por pergunta:
 
 ```
-PERGUNTA → CONTEXTO VÁLIDO? → GERAR SQL → VALIDAR SQL →
-VALIDAR TABELAS → VALIDAR COLUNAS → ADICIONAR LIMIT → EXECUTAR
+PERGUNTA
+   │
+   ▼  1 chamada ao Gemini (cadeia de fallback entre 6 modelos)
+PLANO = { sql, molde_da_resposta }
+   │
+   ├─ token FORA_DE_CONTEXTO ──► recusa educada, nenhum SQL é executado
+   │
+   ▼  validação (somente SELECT, whitelist, sem comentários, LIMIT)
+SQL SEGURO
+   │
+   ▼  execução somente leitura no MySQL
+LINHAS
+   │
+   ▼  marcadores {coluna} preenchidos EM PYTHON, já formatados
+RESPOSTA
 ```
+
+**O modelo nunca vê os dados retornados.** Ele escreve a frase com marcadores
+(`"A companhia com maior taxa de atraso é a {op_unique_carrier}, com
+{delay_rate}."`) e o Python preenche os valores vindos do banco. Isso elimina
+por construção o risco de o modelo arredondar errado ou inventar número.
 
 ---
 
-### 21.1 — Apenas SELECT
+### 1. Validação do SQL
 
-- A consulta gerada pelo Gemini é rejeitada se não começar com `SELECT`.
-- Palavras bloqueadas explicitamente: `INSERT`, `UPDATE`, `DELETE`, `DROP`,
-  `ALTER`, `CREATE`, `TRUNCATE`, `GRANT`, `REVOKE`, `REPLACE`, `MERGE`,
-  `CALL`, `EXEC`.
+#### 1.1 — Apenas SELECT, comando único
+
+- A consulta é rejeitada se não começar com `SELECT`.
 - Múltiplos comandos na mesma consulta (separados por `;`) são bloqueados.
 
-### 21.2 — Tabelas Permitidas (Whitelist)
+#### 1.2 — Keywords proibidas
+
+| Grupo | Palavras |
+|---|---|
+| Escrita e DDL | `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `CREATE`, `TRUNCATE`, `GRANT`, `REVOKE`, `REPLACE`, `MERGE`, `CALL`, `EXEC` |
+| Acesso a arquivo | `INTO`, `OUTFILE`, `DUMPFILE`, `LOAD_FILE`, `LOAD` |
+| Negação de serviço | `SLEEP`, `BENCHMARK`, `GET_LOCK` |
+| Sessão e prepared statements | `SET`, `USE`, `SHOW`, `DESCRIBE`, `EXPLAIN`, `HANDLER`, `PREPARE`, `EXECUTE`, `DEALLOCATE` |
+
+O grupo "acesso a arquivo" foi acrescentado depois de uma revisão encontrar a
+brecha: `SELECT origin INTO OUTFILE '/tmp/x' FROM route_performance` passava
+nas três validações originais — começa com `SELECT`, usa tabela da whitelist
+e não continha nenhuma das keywords da primeira lista. Com a conexão rodando
+como `root`, a escrita de arquivo podia funcionar de fato.
+
+#### 1.3 — Comentários e variáveis
+
+Comentários (`--`, `#`, `/*`) e variáveis de sessão/sistema (`@@version`, `@x`)
+são recusados. Não há uso legítimo deles numa consulta gerada aqui, e são o
+jeito clássico de esconder o resto de um payload.
+
+#### 1.4 — Tabelas permitidas (whitelist)
 
 Apenas estas 5 tabelas Gold podem ser consultadas:
 
@@ -1119,69 +1299,167 @@ delay_causes
 flight_trends
 ```
 
-Qualquer referência a outra tabela (incluindo `bronze_*` ou `silver_*`) é
-bloqueada antes da execução.
+Qualquer referência a outra tabela — incluindo `bronze_*`, `silver_*`,
+`information_schema` e `mysql` — é bloqueada antes da execução.
 
-### 21.3 — Colunas Permitidas
+#### 1.5 — Colunas
 
-O próprio prompt enviado ao Gemini lista explicitamente as colunas de cada
-tabela permitida, e instrui o modelo a nunca inventar nomes de coluna.
-`SELECT *` é bloqueado adicionalmente na validação (não é aceito mesmo se o
-modelo tentar gerar), forçando sempre a listagem explícita de colunas.
+O prompt lista explicitamente as colunas de cada tabela permitida e instrui o
+modelo a nunca inventar nomes. `SELECT *` é bloqueado na validação, forçando a
+listagem explícita.
 
-> **Limitação conhecida:** a validação automática não faz um parsing
-> sintático completo de cada coluna individual (isso exigiria um parser SQL
-> completo). A proteção primária de colunas vem do prompt + do fato de que
-> o SQL só roda contra as 5 tabelas Gold, que não contêm nenhum dado sensível
-> (já são dados agregados/públicos). Registrado aqui de forma transparente
-> como próximo passo de evolução, não como lacuna escondida.
+> **Limitação conhecida, registrada de propósito:** a validação **não** confere
+> coluna por coluna — isso exigiria um parser SQL completo. A whitelist de
+> colunas existe no prompt, não no validador. A proteção real vem de o SQL só
+> poder rodar contra as 5 tabelas Gold, que contêm apenas dados agregados e
+> públicos. Uma coluna inexistente faz o MySQL devolver erro, que é capturado
+> e vira mensagem genérica. Evolução natural: validar as colunas contra
+> `ALLOWED_TABLES` com um parser de verdade (`sqlglot`, por exemplo).
 
-### 21.4 — LIMIT Obrigatório
+#### 1.6 — LIMIT obrigatório
 
-- Se a consulta gerada não tiver `LIMIT`, o sistema adiciona `LIMIT 100`
-  automaticamente.
-- Se a consulta já tiver um `LIMIT` maior que 100, ele é reduzido para 100.
+Sem `LIMIT`, o sistema adiciona `LIMIT 100`. Com `LIMIT` maior que 100, ele é
+reduzido para 100.
 
-### 21.5 — Contexto Restrito
+#### 1.7 — Contexto restrito
 
-O prompt do sistema instrui o Gemini a responder exatamente com o token
-`FORA_DE_CONTEXTO` caso a pergunta não tenha relação com voos, aeroportos,
-companhias aéreas, rotas ou atrasos. O backend detecta esse token e recusa
-educadamente, sem tentar gerar ou validar SQL nenhum.
+O prompt instrui o Gemini a devolver o token `FORA_DE_CONTEXTO` quando a
+pergunta não tiver relação com voos, aeroportos, companhias aéreas, rotas ou
+atrasos. O backend detecta o token e recusa educadamente, sem gerar nem
+validar SQL nenhum.
 
-### 21.6 — Credenciais
+#### 1.8 — Credenciais e vazamento de estrutura
 
-Nunca são enviados ao Gemini: senha do banco, connection string, API key, ou
+Nunca são enviados ao Gemini: senha do banco, connection string, API key ou
 qualquer dado privado. O único conteúdo enviado é a pergunta do usuário e a
-lista pública de tabelas/colunas Gold (metadados, não dados sensíveis).
+lista de tabelas/colunas Gold (metadados, não dados).
+
+No sentido inverso, o erro do MySQL **não volta cru** para o usuário: vai
+completo para o log da aplicação e a API devolve uma mensagem genérica, porque
+a mensagem do MySQL descreve a estrutura interna do banco.
+
+#### 1.9 — Somente leitura: o que ainda falta
+
+A garantia de somente-leitura hoje é o validador, não o banco: o
+`docker-compose.yml` conecta como `root`. Um usuário MySQL com privilégio
+apenas de `SELECT` nas 5 tabelas Gold transformaria isso em garantia real, com
+a aplicação incapaz de escrever mesmo que o validador falhasse. Pendência
+conhecida, não implementada ainda.
 
 ---
 
-### Testes de Validação Realizados
+### 2. Resiliência
+
+O agente roda no free tier do Gemini, com cota diária por modelo. Estas são as
+defesas contra a API ficar indisponível no meio de uma demonstração.
+
+#### 2.1 — Cadeia de fallback entre 6 modelos
+
+`MODEL_FALLBACK_CHAIN` percorre os modelos em ordem. O tratamento depende do
+tipo de erro:
+
+| Erro | Ação |
+|---|---|
+| **503 / UNAVAILABLE** (transitório, "high demand") | Retenta no mesmo modelo, até 2 tentativas, com backoff exponencial de 1s |
+| **429 / RESOURCE_EXHAUSTED** (cota diária) | Descarta o modelo na hora e vai para o próximo — insistir só gasta tempo |
+| Qualquer outro erro permanente | Descarta o modelo e vai para o próximo |
+
+`gemini-2.5-flash` foi removido da cadeia: a API devolve 404 permanente
+("no longer available to new users"), então ele nunca funcionou como fallback
+real — só ocupava uma posição da lista.
+
+#### 2.2 — Cooldown de cota (15 min)
+
+Cota diária queimada vale para o resto do dia, não só para a requisição atual.
+Sem memória entre requisições, **toda pergunta seguinte gastaria a cadeia de
+novo nos mesmos modelos mortos** antes de chegar num que responde.
+
+`_cota_esgotada_ate` guarda, por modelo, até quando ignorá-lo. Modelos em
+cooldown não são removidos: vão para o **fim da fila**, porque pode ter virado
+o dia ou a cota ter sido liberada. É memória de processo — some no restart, o
+que é proposital.
+
+#### 2.3 — Tetos de tempo
+
+| Teto | Valor | Por quê |
+|---|---:|---|
+| Cadeia inteira | 45s | Num dia de cota estourada, percorrer todos os modelos passava de 2 minutos; o frontend desistia antes e mostrava "Failed to fetch" |
+| Por chamada | 25s | Medido na marra: os erros voltam em 0,4–2,6s, mas uma resposta **válida** já levou 24,0s (`gemini-3.5-flash`). Um teto mais curto matava a resposta certa e o log registrava como "timeout", escondendo a causa |
+
+O teto total sozinho não basta — ele só é conferido entre uma tentativa e
+outra, então uma chamada travada seguraria a requisição indefinidamente. Cada
+chamada recebe como timeout HTTP o menor valor entre o teto por chamada e o
+que ainda resta do orçamento total.
+
+#### 2.4 — Uma chamada por pergunta, em vez de duas
+
+A versão anterior chamava o Gemini duas vezes: uma para gerar o SQL, outra
+para transformar o resultado em texto. Agora **uma única chamada** devolve o
+SQL e o molde da resposta no mesmo JSON.
+
+Dois ganhos: o consumo da cota diária cai pela metade, e o modelo deixa de ver
+os dados do banco (ver o topo deste documento).
+
+#### 2.5 — Boot independente do Gemini
+
+O cliente Gemini é criado na primeira chamada, não no import do módulo. Antes,
+sem `GEMINI_API_KEY`, **a API inteira quebrava no boot** — derrubando junto o
+dashboard e os endpoints de dados, que não dependem do Gemini.
+
+---
+
+### 3. Testes de validação
+
+#### Payloads de ataque — todos bloqueados
 
 | Entrada | Resultado |
 |---|---|
-| `SELECT op_unique_carrier, delay_rate FROM airline_performance ORDER BY delay_rate DESC LIMIT 5` | ✅ Aceita |
-| `SELECT * FROM airline_performance` | ❌ Bloqueada (SELECT *) |
-| `DROP TABLE airline_performance` | ❌ Bloqueada (não é SELECT) |
-| `SELECT * FROM users; DROP TABLE airline_performance;` | ❌ Bloqueada (múltiplos comandos) |
-| `SELECT op_unique_carrier FROM bronze_flights_raw` | ❌ Bloqueada (tabela fora da whitelist) |
-| `SELECT month, total_flights FROM flight_trends` (sem LIMIT) | ✅ Aceita, com `LIMIT 100` adicionado |
-| `SELECT origin, dest FROM route_performance LIMIT 99999` | ✅ Aceita, com `LIMIT` reduzido para 100 |
+| `SELECT origin INTO OUTFILE '/tmp/x' FROM route_performance` | ❌ keyword `INTO` |
+| `SELECT origin, LOAD_FILE('/etc/passwd') FROM route_performance` | ❌ keyword `LOAD_FILE` |
+| `SELECT origin FROM route_performance WHERE SLEEP(10)` | ❌ keyword `SLEEP` |
+| `SELECT origin FROM route_performance -- ignore` | ❌ comentário |
+| `SELECT @@version FROM route_performance` | ❌ variável |
+| `SELECT origin FROM route_performance; DROP TABLE x` | ❌ múltiplos comandos |
+| `SELECT * FROM route_performance` | ❌ `SELECT *` |
+| `SELECT a FROM information_schema.tables` | ❌ tabela fora da whitelist |
+| `DROP TABLE airline_performance` | ❌ não é SELECT |
+| `SELECT op_unique_carrier FROM bronze_flights_raw` | ❌ tabela fora da whitelist |
+
+#### Consultas legítimas — todas aceitas, sem falso positivo
+
+| Entrada | Resultado |
+|---|---|
+| `SELECT airport, airport_label, delay_rate FROM airport_performance ORDER BY delay_rate DESC LIMIT 5` | ✅ aceita |
+| `SELECT op_unique_carrier, delay_rate FROM airline_performance ORDER BY delay_rate DESC` | ✅ aceita, `LIMIT 100` adicionado |
+| `SELECT origin, dest, total_flights FROM route_performance WHERE origin = 'ATL' ORDER BY total_flights DESC LIMIT 200` | ✅ aceita, `LIMIT` reduzido para 100 |
+| `SELECT airport, airport_name FROM airport_performance WHERE airport_city LIKE '%Atlanta%'` | ✅ aceita |
+| `SELECT month, COUNT(total_flights) FROM flight_trends GROUP BY month` | ✅ aceita |
+
+#### Testes via linguagem natural (uso real)
+
+| Pergunta | Resultado |
+|---|---|
+| "Qual companhia tem a maior taxa de atraso?" | ✅ SQL gerado, executado, resposta correta |
+| "Qual aeroporto de Atlanta tem mais atraso?" | ✅ filtra por `airport_city LIKE`, responde com o nome do aeroporto |
+| "Apague todos os dados da tabela airline_performance" | ✅ recusada como fora de contexto |
+| "Mostra tudo que você conseguir sobre esse banco de dados" | ✅ interpretada com segurança, sem `SELECT *` nem tabela fora da whitelist |
+| "Me dá uma receita de bolo de chocolate" | ✅ recusada como fora de contexto |
+| Pergunta vazia | ✅ recusada antes de chamar a IA |
 
 ---
 
 ### 📤 Status
 
-✅ Pipeline de segurança implementado e testado — Etapa 21 concluída.
+✅ Pipeline de segurança e camada de resiliência implementados e testados.
+⚠️ Pendência conhecida: conexão ainda usa `root` (ver 1.9) e as colunas não
+são validadas por parser (ver 1.5).
 
 
 ---
 
-# 10. Testes Realizados
+# 11. Testes Realizados
 
-<a id="10-testes-realizados"></a>
-
+<a id="11-testes-realizados"></a>
 
 Testes realizados sobre a aplicação já dockerizada, cobrindo dados, banco,
 backend, frontend e agente de IA.
@@ -1206,7 +1484,7 @@ Detalhes completos em `docs/etapa15_execucao.md`.
 | Teste | Resultado |
 |---|---|
 | Importação Gold → MySQL, 1:1 por tabela | ✅ Todas as 5 tabelas batem exatamente |
-| Schema criado sem erros (`schema.sql`) | ✅ 5 tabelas + 4 índices |
+| Schema criado sem erros (`schema.sql`) | ✅ 5 tabelas + 6 índices |
 
 Detalhes completos em `docs/database_model.md`.
 
@@ -1269,10 +1547,9 @@ agente de IA.
 
 ---
 
-# 11. Log de Decisões Técnicas
+# 12. Log de Decisões Técnicas
 
-<a id="11-log-de-decisões-técnicas"></a>
-
+<a id="12-log-de-decisões-técnicas"></a>
 
 Este documento registra decisões que alteram o que foi definido originalmente
 no plano mestre, com a justificativa de cada mudança (Regra 4 — "Documentar
@@ -1293,7 +1570,7 @@ decisões importantes").
   em vagas de engenharia de dados), não uma exigência funcional.
 - **Impacto:**
   - `README.md` — seção "Banco de Dados" atualizada de PostgreSQL para MySQL.
-  - `docs/architecture.md` — seção "🐘 Banco de Dados" atualizada.
+  - `docs/architecture.md` — seção "Banco de Dados" atualizada.
   - Etapas 16, 20 e 21 do plano (que citam PostgreSQL) devem ser lidas como
     "MySQL" a partir daqui.
   - Ferramenta de administração: MySQL Workbench (equivalente ao pgAdmin do
@@ -1301,12 +1578,6 @@ decisões importantes").
 - **Sem impacto em:** Bronze, Silver, Gold (Databricks/Delta Lake), Etapas 0-15
   já concluídas. A troca afeta apenas a camada de banco relacional e tudo que
   a consome a partir da Etapa 16.
-
----
-
-### 📤 Status
-
-✅ Decisão registrada. Segue-se com MySQL a partir da Etapa 16.
 
 ---
 
@@ -1319,9 +1590,40 @@ decisões importantes").
   (Python/PySpark já usados nas Etapas 10-15), menor curva de setup, e
   FastAPI gera documentação interativa automática (Swagger/OpenAPI), útil
   tanto para desenvolvimento do frontend quanto para portfólio.
-- **Impacto:** pasta `backend/` conterá uma aplicação FastAPI conectada ao
+- **Impacto:** pasta `backend/` contém uma aplicação FastAPI conectada ao
   MySQL (`flight_intelligence`) via SQLAlchemy.
+
+---
+
+### Decisão 03 — Nome do aeroporto: atributo, não substituto da sigla
+
+- **Etapa:** 15 (Silver/Gold) + 16 a 22 (banco, API, dashboard)
+- **Problema:** aeroportos apareciam só pela sigla IATA (`ATL`, `ORD`), o que
+  deixa o dashboard e as respostas do agente de IA ilegíveis para quem não
+  decorou os códigos.
+- **Opções consideradas:**
+  - (A) Trocar a sigla pelo nome nas agregações — **descartada**: o nome não
+    é único (ORD e MDW são "Chicago, IL"; IAH e HOU são "Houston, TX"), então
+    agrupar por nome fundiria aeroportos distintos e corromperia as métricas.
+  - (B) Tabela de nomes oficiais digitada à mão — descartada: dado externo,
+    não rastreável ao dataset e incompleto para os 348 aeroportos.
+  - (C) **Escolhida:** dimensão `silver.dim_airports` derivada das próprias
+    colunas `origin_city_name`/`dest_city_name`, com join na Gold.
+- **Impacto:**
+  - `silver.dim_airports` (nova tabela Silver).
+  - `gold.airport_performance` ganha `airport_name`, `airport_city`,
+    `airport_state`, `airport_label`; `gold.route_performance` ganha
+    `origin_name` e `dest_name`.
+  - `database/schema.sql`, `models.py`, `schemas.py` e a whitelist do agente
+    de IA (`ai_agent.py`) atualizados com as colunas novas.
+  - Frontend: sigla + nome nas tabelas de Aeroportos e Rotas, busca aceitando
+    "ATL" ou "Atlanta", e o KPI do dashboard mostrando o nome sob a sigla.
+- **Sem impacto em:** Bronze (só carga), `airline_performance`,
+  `delay_causes`, `flight_trends` e todas as métricas já publicadas — os
+  números não mudam, apenas ganham rótulo.
+
+---
 
 ### 📤 Status
 
-✅ Decisão registrada. Segue-se com FastAPI a partir da Etapa 17.
+✅ Decisões registradas e aplicadas em todo o projeto.

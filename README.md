@@ -19,8 +19,6 @@ qualidade, modelagem analítica, disponibilização via API, visualização em
 dashboard e um agente de IA para consultas em linguagem natural — tudo
 containerizado e pronto para rodar com um único comando.
 
-
-
 ---
 
 ## 📸 Screenshots
@@ -36,32 +34,35 @@ containerizado e pronto para rodar com um único comando.
 ## 🏗️ Arquitetura
 
 ```text
-   📂 DATASET (7M+ voos, Kaggle/BTS)
+   📂 DATASET (7.079.081 voos, Kaggle/BTS)
         │
         ▼
-   📥 INGESTÃO — PySpark (Databricks)
+   🥉 BRONZE → 🥈 SILVER → 🥇 GOLD   (PySpark + Delta Lake, Databricks)
         │
         ▼
-   🥉 BRONZE → 🥈 SILVER → 🥇 GOLD  (Delta Lake)
+   🐬 MySQL (5 tabelas analíticas)
         │
         ▼
-   🐬 MySQL (tabelas analíticas)
+   🚀 API — FastAPI
         │
-   ┌────┴────┐
-   ▼         ▼
-🚀 API    📊 Dashboard (React)
-(FastAPI)     │
-   │      🤖 Chat IA (Gemini)
-   └────┬────┘
-        ▼
-   💻 Frontend (React + TypeScript)
+   ┌────┴─────────────┐
+   ▼                  ▼
+💻 Frontend        🤖 Agente de IA
+React + TS         Gemini (SQL validado)
 ```
 
-- **Bronze**: dados brutos, sem transformação de negócio
-- **Silver**: dados limpos, validados e padronizados (regras documentadas em [`docs/silver_rules.md`](docs/silver_rules.md))
-- **Gold**: 5 tabelas analíticas prontas para consumo (`airline_performance`, `airport_performance`, `route_performance`, `delay_causes`, `flight_trends`)
+- **Bronze**: dados brutos, sem transformação de negócio. A leitura do CSV é a
+  primeira célula do notebook — não existe camada de ingestão separada.
+- **Silver**: dados limpos, validados e padronizados (11 regras documentadas em
+  [`docs/silver_rules.md`](docs/silver_rules.md)), mais a dimensão
+  `dim_airports`, que dá nome aos aeroportos sem depender de dado externo.
+- **Gold**: 5 tabelas analíticas prontas para consumo (`airline_performance`,
+  `airport_performance`, `route_performance`, `delay_causes`, `flight_trends`).
 
-Arquitetura completa e decisões de camada em [`docs/architecture.md`](docs/architecture.md).
+Pipeline executado sobre o dataset completo em **~58s** no Databricks Free
+Edition. Arquitetura completa e decisões de camada em
+[`docs/architecture.md`](docs/architecture.md); os notebooks e como reproduzir
+em [`notebooks/README.md`](notebooks/README.md).
 
 ---
 
@@ -77,30 +78,31 @@ Arquitetura completa e decisões de camada em [`docs/architecture.md`](docs/arch
 | Containerização | Docker, Docker Compose |
 | Versionamento | Git, GitHub |
 
-
-
 ---
 
 ## 📁 Estrutura do Projeto
 
 ```text
 flight-intelligence-platform/
-├── backend/          # API FastAPI + agente de IA
-├── frontend/         # React + TypeScript (Dashboard, Chat IA)
-├── database/         # schema.sql, dump de dados
-├── docker/           # Dockerfiles de backend e frontend
-├── docs/             # documentação detalhada (ver seção abaixo)
-├── notebooks/        # notebooks PySpark (Bronze/Silver/Gold)
-└── docker-compose.yml
+├── backend/            # API FastAPI + agente de IA
+├── frontend/           # React + TypeScript (ver frontend/README.md)
+├── database/           # schema.sql e dump de dados
+├── docker/             # Dockerfiles de backend e frontend
+├── docs/               # documentação técnica detalhada
+├── notebooks/          # notebooks PySpark (ver notebooks/README.md)
+├── scripts/            # utilitários de desenvolvimento
+├── docker-compose.yml
+└── LICENSE
 ```
 
 ---
 
 ## 🚀 Como Executar
 
-### Opção 1 — Docker 
+### Opção 1 — Docker (recomendado)
 
-Pré-requisitos: Docker Desktop instalado e aberto.
+Sobe banco, backend e frontend com um comando. Pré-requisito: Docker Desktop
+instalado e aberto.
 
 ```bash
 # 1. Clone o repositório
@@ -115,10 +117,44 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- http://localhost:5173
+O MySQL é populado automaticamente a partir de
+`database/flight_intelligence_dump.sql` na primeira execução — não é preciso
+rodar o pipeline do Databricks para ver a plataforma funcionando.
 
+### Opção 2 — Local, sem Docker
 
+Útil para desenvolver com reload automático.
 
+```bash
+# 1. Banco: crie o schema e carregue o dump no seu MySQL
+mysql -u root -p < database/schema.sql
+mysql -u root -p flight_intelligence < database/flight_intelligence_dump.sql
+
+# 2. Backend
+cd backend
+python -m venv venv
+venv\Scripts\activate          # Windows;  no Linux/Mac: source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env           # preencha DB_PASSWORD e GEMINI_API_KEY
+cd ..
+
+# 3. Frontend
+npm --prefix frontend install
+
+# 4. Suba backend e frontend juntos, a partir da raiz
+npm install
+npm run dev
+```
+
+### Acessos
+
+| O quê | Endereço |
+|---|---|
+| Dashboard (frontend) | http://localhost:5173 |
+| API — documentação interativa (Swagger) | http://localhost:8000/docs |
+| API — endpoints | http://localhost:8000 |
+
+---
 
 ## ✨ Funcionalidades
 
@@ -127,6 +163,9 @@ docker compose up --build
   (barras, pizza, linha) com fonte/métrica/unidade documentadas em cada um.
 - **Páginas de dados** — Companhias, Aeroportos e Rotas (com filtro por
   origem/destino), Atrasos (motivos e evolução mensal).
+- **Busca por sigla ou por nome** — `GET /airports?search=` casa tanto "ATL"
+  quanto "Atlanta", e as tabelas mostram a sigla com o nome do aeroporto
+  abaixo.
 - **API REST** — endpoints `/dashboard`, `/airlines`, `/airports`,
   `/routes`, `/delays`, `/trends`, documentação automática em `/docs`.
 - **Chat com IA** — pergunte em português ("Qual companhia tem a maior
@@ -135,19 +174,39 @@ docker compose up --build
 
 ---
 
-## 🔒 Segurança do Agente de IA
+## 🔒 Agente de IA — segurança e resiliência
 
-O agente converte perguntas em SQL via Gemini, mas roda sob um pipeline de
-segurança rígido:
+O agente converte perguntas em SQL via Gemini, mas nada do que o modelo gera
+chega ao banco sem passar por um validador. Documentação completa em
+[`docs/ai_agent_security.md`](docs/ai_agent_security.md).
 
-- Somente `SELECT` — qualquer comando de escrita é bloqueado
-- Whitelist de tabelas e colunas (só as 5 tabelas Gold, nunca dados brutos)
+**Segurança**
+
+- Somente `SELECT`, comando único, sem `SELECT *`
+- **Whitelist de tabelas** — apenas as 5 tabelas Gold, nunca Bronze/Silver
+  nem `information_schema`. As colunas permitidas são passadas no prompt;
+  o validador confere as tabelas, não cada coluna (limitação registrada
+  abertamente na doc, item 1.5)
+- Keywords de escrita, DDL, acesso a arquivo (`INTO OUTFILE`, `LOAD_FILE`) e
+  funções de tempo (`SLEEP`, `BENCHMARK`) bloqueadas; comentários e variáveis
+  de sessão também
 - `LIMIT` obrigatório (máx. 100 linhas)
-- Perguntas fora do escopo (voos/aeroportos/companhias/rotas/atrasos) são
-  recusadas antes mesmo de gerar SQL
-- Nenhuma credencial é enviada ao modelo de IA
+- Perguntas fora do escopo são recusadas antes mesmo de gerar SQL
+- Nenhuma credencial é enviada ao modelo, e o erro do banco não volta cru
+  pela API
 
+**Resiliência** — o que faz o chat continuar respondendo no free tier:
 
+- **Cadeia de fallback entre 6 modelos Gemini**, com retentativa só em erro
+  transitório (503) e descarte imediato em 429 de cota
+- **Cooldown de 15 min por modelo** que estourou a cota, para as perguntas
+  seguintes não gastarem a cadeia de novo nos mesmos modelos mortos
+- **Tetos de tempo** — 45s para a cadeia inteira, 25s por chamada, para o
+  frontend nunca ficar pendurado
+- **Uma chamada por pergunta em vez de duas**: o mesmo JSON traz o SQL e o
+  molde da resposta. Corta a cota pela metade e, como os números são
+  formatados em Python, **o modelo nunca vê os dados** — não tem como
+  arredondar errado nem inventar valor
 
 ---
 
@@ -157,7 +216,8 @@ Pipeline de dados validado (7.079.081 registros, Bronze → Silver → Gold
 sem perdas), API testada com casos de erro, agente de IA testado contra
 tentativas de burlar a segurança via linguagem natural, e frontend
 verificado em telas estreitas. Dois bugs reais foram encontrados e
-corrigidos durante os testes.
+corrigidos durante os testes. Relatório em
+[`docs/testing.md`](docs/documentacao_completa.md).
 
 ---
 
@@ -168,7 +228,7 @@ Este projeto usa o **Flight Delay Dataset — 2024**.
 - **Fonte:** Kaggle
 - **Fonte original:** BTS TranStats — On-Time Performance Database
 - **Licença:** CC0 — Creative Commons Zero
-- **Volume:** 7M+ registros, 35 colunas, voos domésticos dos EUA em 2024
+- **Volume:** 7.079.081 registros, 35 colunas, voos domésticos dos EUA em 2024
 
 ---
 
@@ -182,10 +242,16 @@ regras de limpeza aplicadas na camada Silver, a definição oficial dos
 KPIs, a arquitetura de cada camada, o modelo do banco de dados e a
 validação da importação, o pipeline de segurança do agente de IA, o
 relatório de testes realizados, e as decisões técnicas que desviaram do
-plano original (como a troca de PostgreSQL por MySQL, e a escolha de
-Python/FastAPI para o backend). Essa documentação guiou o desenvolvimento
+plano original (como a troca de PostgreSQL por MySQL, a escolha de
+Python/FastAPI para o backend e o tratamento do nome do aeroporto como
+atributo, não como chave). Essa documentação guiou o desenvolvimento
 passo a passo. [A documentação técnica completa pode ser acessada
 aqui](docs/documentacao_completa.md).
 
 ---
 
+## 📄 Licença
+
+Código sob **MIT** — ver [LICENSE](LICENSE).
+O dataset é de terceiros e tem licença própria: **CC0 — Creative Commons
+Zero** (BTS/Kaggle).
