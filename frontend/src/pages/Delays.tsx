@@ -1,82 +1,128 @@
 import { useEffect, useState } from "react";
 import { getDelayCauses, getTrends } from "../services/api";
 import type { DelayCauses, FlightTrend } from "../types";
+import BarList from "../components/BarList";
+import CauseDonut from "../components/CauseDonut";
+import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
-
-const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
+import PageState from "../components/PageState";
+import TrendLine from "../components/TrendLine";
+import { CHART_COLORS } from "../lib/chart";
+import { mins, monthLong, monthShort, num, pct } from "../lib/format";
+import { causeSlices } from "./chartData";
 
 export default function Delays() {
   const [causes, setCauses] = useState<DelayCauses | null>(null);
-  const [causesError, setCausesError] = useState<string | null>(null);
-  const [causesLoading, setCausesLoading] = useState(true);
-
-  const [trends, setTrends] = useState<FlightTrend[] | null>(null);
-  const [trendsError, setTrendsError] = useState<string | null>(null);
-  const [trendsLoading, setTrendsLoading] = useState(true);
+  const [trends, setTrends] = useState<FlightTrend[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getDelayCauses()
-      .then(setCauses)
-      .catch((err) => setCausesError(err.message))
-      .finally(() => setCausesLoading(false));
-
-    getTrends()
-      .then(setTrends)
-      .catch((err) => setTrendsError(err.message))
-      .finally(() => setTrendsLoading(false));
+    Promise.all([getDelayCauses(), getTrends()])
+      .then(([causeData, trendData]) => {
+        setCauses(causeData);
+        setTrends(trendData);
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const causesRows = causes
-    ? [
-        { label: "Companhia Aérea", value: causes.total_carrier_delay },
-        { label: "Clima", value: causes.total_weather_delay },
-        { label: "Sistema Aéreo Nacional (NAS)", value: causes.total_nas_delay },
-        { label: "Segurança", value: causes.total_security_delay },
-        { label: "Aeronave Anterior", value: causes.total_late_aircraft_delay },
-      ]
-    : null;
+  const slices = causeSlices(causes);
+  const totalMinutos = slices.reduce((sum, slice) => sum + slice.value, 0);
+
+  const trendPoints = trends.map((trend) => ({
+    month: monthShort(trend.month),
+    rate: trend.delay_rate ?? 0,
+  }));
+
+  const comTaxa = trends.filter((trend) => trend.delay_rate !== null);
+  const pico = comTaxa.reduce<FlightTrend | null>(
+    (top, trend) => ((trend.delay_rate ?? 0) > (top?.delay_rate ?? -1) ? trend : top),
+    null,
+  );
+  const vale = comTaxa.reduce<FlightTrend | null>(
+    (low, trend) => ((trend.delay_rate ?? 1) < (low?.delay_rate ?? 2) ? trend : low),
+    null,
+  );
+  const trendHint =
+    vale && pico
+      ? `mínimo em ${monthLong(vale.month).toLowerCase()} (${pct(vale.delay_rate)}) · ` +
+        `máximo em ${monthLong(pico.month).toLowerCase()} (${pct(pico.delay_rate)})`
+      : undefined;
 
   return (
-    <div>
-      <h2>Motivos de Atraso (Total do Ano)</h2>
-      <DataTable
-        loading={causesLoading}
-        error={causesError}
-        data={causesRows}
-        columns={[
-          { header: "Motivo", render: (r) => r.label },
-          {
-            header: "Total de Minutos",
-            render: (r) => (r.value !== null ? r.value.toLocaleString("pt-BR") : "—"),
-          },
-        ]}
-      />
+    <div className="page">
+      {(loading || error) && <PageState loading={loading} error={error} skeletons={3} />}
 
-      <h2 style={{ marginTop: "2.5rem" }}>Evolução Mensal</h2>
+      {!loading && !error && (
+        <>
+          <div className="card-grid">
+            <ChartCard
+              title="Minutos de atraso por motivo"
+              hint="pergunta 14"
+              source="gold.delay_causes"
+              metric="soma de minutos atribuídos a cada motivo"
+              unit="minutos"
+              span="1 / -1"
+            >
+              <BarList
+                items={slices.map((slice) => ({
+                  label: slice.name.split(" ")[0],
+                  value: slice.value,
+                }))}
+                color={CHART_COLORS.lateAircraft}
+                format={(value) => num(value)}
+                seriesName="Minutos de atraso"
+                labelWidth={78}
+                minValueWidth={110}
+              />
+            </ChartCard>
+          </div>
+
+          <ChartCard
+            title="Evolução mensal da taxa de atraso"
+            hint={trendHint}
+            source="gold.flight_trends"
+            metric="% de voos com atraso de chegada > 15 min, por mês"
+            unit="%"
+          >
+            <TrendLine points={trendPoints} height={230} />
+          </ChartCard>
+
+          <ChartCard
+            title="Composição dos motivos de atraso"
+            hint={`total do ano · ${num(totalMinutos)} minutos`}
+            source="gold.delay_causes"
+            metric="soma de minutos de atraso atribuídos a cada motivo"
+            unit="minutos"
+          >
+            <CauseDonut slices={slices} size={186} showMinutes />
+          </ChartCard>
+        </>
+      )}
+
       <DataTable
-        loading={trendsLoading}
-        error={trendsError}
+        title="Evolução mensal"
+        hint={`${trends.length} meses de 2024`}
+        source="gold.flight_trends"
+        metric="delay_rate e average_arrival_delay por mês"
+        unit="% e minutos"
+        loading={loading}
+        error={error}
         data={trends}
         columns={[
-          { header: "Mês", render: (r) => MONTH_NAMES[r.month - 1] ?? r.month },
+          { header: "Mês", render: (r) => monthLong(r.month), mono: true },
+          { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
           {
-            header: "Total de Voos",
-            render: (r) => r.total_flights.toLocaleString("pt-BR"),
+            header: "Voos atrasados",
+            align: "right",
+            render: (r) => num(r.delayed_flights),
           },
+          { header: "Taxa de atraso", align: "right", render: (r) => pct(r.delay_rate) },
           {
-            header: "Taxa de Atraso",
-            render: (r) =>
-              r.delay_rate !== null ? `${(r.delay_rate * 100).toFixed(2)}%` : "—",
-          },
-          {
-            header: "Atraso Médio (Chegada)",
-            render: (r) =>
-              r.average_arrival_delay !== null
-                ? `${r.average_arrival_delay.toFixed(1)} min`
-                : "—",
+            header: "Atraso médio (chegada)",
+            align: "right",
+            render: (r) => mins(r.average_arrival_delay),
           },
         ]}
       />

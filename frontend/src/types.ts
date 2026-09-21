@@ -11,7 +11,14 @@ export interface AirlinePerformance {
 }
 
 export interface AirportPerformance {
+  /** Sigla IATA — e' a chave da tabela. */
   airport: string;
+  /** Cidade/UF vinda de silver.dim_airports ("Atlanta, GA"). */
+  airport_name: string | null;
+  airport_city: string | null;
+  airport_state: string | null;
+  /** Rotulo pronto: "ATL - Atlanta, GA". */
+  airport_label: string | null;
   total_flights: number;
   delayed_flights: number;
   average_departure_delay: number | null;
@@ -22,7 +29,9 @@ export interface AirportPerformance {
 
 export interface RoutePerformance {
   origin: string;
+  origin_name: string | null;
   dest: string;
+  dest_name: string | null;
   total_flights: number;
   average_arrival_delay: number | null;
   average_distance: number | null;
@@ -51,6 +60,7 @@ export interface DashboardSummary {
   average_cancellation_rate: number | null;
   most_punctual_airline: string | null;
   most_delayed_airport: string | null;
+  most_delayed_airport_name: string | null;
 }
 
 export interface ChatResponse {

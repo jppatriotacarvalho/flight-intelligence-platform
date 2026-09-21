@@ -1,57 +1,44 @@
 import { useEffect, useState } from "react";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  LineChart,
-  Line,
-} from "recharts";
-import {
-  getDashboard,
   getAirlines,
   getAirports,
+  getDashboard,
   getDelayCauses,
+  getRoutes,
   getTrends,
 } from "../services/api";
 import type {
-  DashboardSummary,
   AirlinePerformance,
   AirportPerformance,
+  DashboardSummary,
   DelayCauses,
   FlightTrend,
+  RoutePerformance,
 } from "../types";
+import BarList from "../components/BarList";
+import CauseDonut from "../components/CauseDonut";
 import ChartCard from "../components/ChartCard";
-import "./Dashboard.css";
-
-const MONTH_SHORT = [
-  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez",
-];
-
-const PIE_COLORS = ["#4f8ff7", "#f79b4f", "#4fc78f", "#e05c5c", "#a05cf7"];
-const TOOLTIP_STYLE = {
-  backgroundColor: "#ffffff",
-  border: "1px solid #e5e7eb",
-  borderRadius: 8,
-  color: "#1a1a1a",
-  fontSize: 13,
-};
-const AXIS_COLOR = "#6b7280";
-const GRID_COLOR = "#e5e7eb";
+import KpiCard from "../components/KpiCard";
+import PageState from "../components/PageState";
+import SectionHeader from "../components/SectionHeader";
+import TrendLine from "../components/TrendLine";
+import { CHART_COLORS, TOP_N_DASHBOARD } from "../lib/chart";
+import { mins, monthLong, monthShort, num, pct, topBy } from "../lib/format";
+import {
+  airportDelayItems,
+  airportVolumeItems,
+  causeSlices,
+  routeDelayItems,
+  routeVolumeItems,
+} from "./chartData";
 
 export default function Dashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [airlines, setAirlines] = useState<AirlinePerformance[] | null>(null);
-  const [airports, setAirports] = useState<AirportPerformance[] | null>(null);
+  const [airlines, setAirlines] = useState<AirlinePerformance[]>([]);
+  const [airports, setAirports] = useState<AirportPerformance[]>([]);
+  const [routes, setRoutes] = useState<RoutePerformance[]>([]);
   const [causes, setCauses] = useState<DelayCauses | null>(null);
-  const [trends, setTrends] = useState<FlightTrend[] | null>(null);
+  const [trends, setTrends] = useState<FlightTrend[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,220 +48,252 @@ export default function Dashboard() {
       getDashboard(),
       getAirlines(),
       getAirports(),
+      getRoutes(),
       getDelayCauses(),
       getTrends(),
     ])
-      .then(([s, a, ap, c, t]) => {
-        setSummary(s);
-        setAirlines(a);
-        setAirports(ap);
-        setCauses(c);
-        setTrends(t);
+      .then(([summaryData, airlineData, airportData, routeData, causeData, trendData]) => {
+        setSummary(summaryData);
+        setAirlines(airlineData);
+        setAirports(airportData);
+        setRoutes(routeData);
+        setCauses(causeData);
+        setTrends(trendData);
       })
-      .catch((err) => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading)
+  if (loading || error || !summary) {
     return (
-      <div className="dashboard__loading">
-        <span className="spinner" aria-hidden="true" />
-        <span>Carregando dashboard...</span>
+      <div className="page">
+        <PageState loading={loading} error={error} skeletons={6} kpi />
+        {!error && <PageState loading={loading} error={null} skeletons={4} />}
       </div>
     );
-  if (error) return <p className="dashboard__error">Erro: {error}</p>;
-  if (!summary) return null;
+  }
 
-  const formatPercent = (value: number | null) =>
-    value !== null ? `${(value * 100).toFixed(2)}%` : "—";
+  const kpis = [
+    {
+      label: "Total de voos",
+      value: num(summary.total_flights),
+      accent: CHART_COLORS.accent,
+    },
+    {
+      label: "Taxa de atraso média",
+      value: pct(summary.average_delay_rate),
+      accent: CHART_COLORS.delay,
+    },
+    {
+      label: "Atraso médio (chegada)",
+      value: mins(summary.average_arrival_delay),
+      accent: CHART_COLORS.delay,
+    },
+    {
+      label: "Taxa de cancelamento",
+      value: pct(summary.average_cancellation_rate),
+      accent: CHART_COLORS.cancel,
+    },
+    {
+      label: "Companhia mais pontual",
+      value: summary.most_punctual_airline ?? "—",
+      accent: CHART_COLORS.positive,
+    },
+    {
+      label: "Aeroporto mais atrasado",
+      value: summary.most_delayed_airport ?? "—",
+      sub: summary.most_delayed_airport_name,
+      accent: CHART_COLORS.cancel,
+    },
+  ];
 
-  const formatMinutes = (value: number | null) =>
-    value !== null ? `${value.toFixed(1)} min` : "—";
+  const trendPoints = trends.map((trend) => ({
+    month: monthShort(trend.month),
+    rate: trend.delay_rate ?? 0,
+  }));
 
-  const airlineChartData = airlines
-    ? [...airlines]
-        .sort((a, b) => (b.delay_rate ?? 0) - (a.delay_rate ?? 0))
-        .map((r) => ({
-          companhia: r.op_unique_carrier,
-          taxa_atraso: r.delay_rate !== null ? Number((r.delay_rate * 100).toFixed(2)) : 0,
-        }))
-    : [];
+  const peak = trends.reduce<FlightTrend | null>(
+    (top, trend) => ((trend.delay_rate ?? 0) > (top?.delay_rate ?? -1) ? trend : top),
+    null,
+  );
 
-  const airportChartData = airports
-    ? [...airports]
-        .sort((a, b) => b.total_flights - a.total_flights)
-        .slice(0, 10)
-        .sort((a, b) => (b.delay_rate ?? 0) - (a.delay_rate ?? 0))
-        .map((r) => ({
-          aeroporto: r.airport,
-          taxa_atraso: r.delay_rate !== null ? Number((r.delay_rate * 100).toFixed(2)) : 0,
-        }))
-    : [];
-
-  const pieData = causes
-    ? [
-        { name: "Companhia Aérea", value: causes.total_carrier_delay ?? 0 },
-        { name: "Clima", value: causes.total_weather_delay ?? 0 },
-        { name: "Sistema Aéreo Nacional (NAS)", value: causes.total_nas_delay ?? 0 },
-        { name: "Segurança", value: causes.total_security_delay ?? 0 },
-        { name: "Aeronave Anterior", value: causes.total_late_aircraft_delay ?? 0 },
-      ]
-    : [];
-
-  const trendChartData = trends
-    ? trends.map((t) => ({
-        mes: MONTH_SHORT[t.month - 1] ?? t.month,
-        taxa_atraso: t.delay_rate !== null ? Number((t.delay_rate * 100).toFixed(2)) : 0,
-      }))
-    : [];
+  const slices = causeSlices(causes);
+  const totalCauseMinutes = slices.reduce((sum, slice) => sum + slice.value, 0);
+  const causeHint = `${(totalCauseMinutes / 1000000).toFixed(1).replace(".", ",")} mi de minutos`;
 
   return (
-    <div>
-      <h2>Visão Geral</h2>
-      <div className="dashboard__grid">
-        <div className="dashboard__card">
-          <span className="dashboard__label">Total de Voos</span>
-          <span className="dashboard__value">
-            {summary.total_flights.toLocaleString("pt-BR")}
-          </span>
-        </div>
-        <div className="dashboard__card">
-          <span className="dashboard__label">Taxa de Atraso Média</span>
-          <span className="dashboard__value">
-            {formatPercent(summary.average_delay_rate)}
-          </span>
-        </div>
-        <div className="dashboard__card">
-          <span className="dashboard__label">Atraso Médio (Chegada)</span>
-          <span className="dashboard__value">
-            {formatMinutes(summary.average_arrival_delay)}
-          </span>
-        </div>
-        <div className="dashboard__card">
-          <span className="dashboard__label">Taxa de Cancelamento Média</span>
-          <span className="dashboard__value">
-            {formatPercent(summary.average_cancellation_rate)}
-          </span>
-        </div>
-        <div className="dashboard__card">
-          <span className="dashboard__label">Companhia Mais Pontual</span>
-          <span className="dashboard__value">
-            {summary.most_punctual_airline ?? "—"}
-          </span>
-        </div>
-        <div className="dashboard__card">
-          <span className="dashboard__label">Aeroporto Mais Atrasado</span>
-          <span className="dashboard__value">
-            {summary.most_delayed_airport ?? "—"}
-          </span>
-        </div>
+    <div className="page">
+      <div className="kpi-grid">
+        {kpis.map((kpi) => (
+          <KpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={"sub" in kpi ? kpi.sub : null}
+            accent={kpi.accent}
+          />
+        ))}
       </div>
 
-      <h2 style={{ marginTop: "2.5rem" }}>Análise Visual</h2>
+      <section className="section">
+        <SectionHeader title="Companhias aéreas" hint="perguntas 1 a 4" />
+        <div className="card-grid">
+          <ChartCard
+            title="Taxa de atraso por companhia"
+            hint="pergunta 1"
+            source="gold.airline_performance"
+            metric="% de voos com atraso de chegada > 15 min"
+            unit="%"
+          >
+            <BarList
+              items={topBy(airlines, (r) => r.delay_rate, TOP_N_DASHBOARD).map((r) => ({
+                label: r.op_unique_carrier,
+                value: r.delay_rate ?? 0,
+              }))}
+              color={CHART_COLORS.accent}
+              format={(value) => pct(value)}
+              seriesName="Taxa de atraso"
+            />
+          </ChartCard>
 
-      {airlineChartData.length > 0 && (
-        <ChartCard
-          title="Taxa de Atraso por Companhia"
-          source="gold.airline_performance"
-          metric="% de voos com atraso de chegada > 15 min"
-          unit="%"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={airlineChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
-              <XAxis dataKey="companhia" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
-              <YAxis unit="%" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]}
-              />
-              <Bar dataKey="taxa_atraso" fill="#4f8ff7" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      )}
+          <ChartCard
+            title="Taxa de cancelamento por companhia"
+            hint="pergunta 2"
+            source="gold.airline_performance"
+            metric="cancelled_flights / total_flights"
+            unit="%"
+          >
+            <BarList
+              items={topBy(airlines, (r) => r.cancellation_rate, TOP_N_DASHBOARD).map((r) => ({
+                label: r.op_unique_carrier,
+                value: r.cancellation_rate ?? 0,
+              }))}
+              color={CHART_COLORS.cancel}
+              format={(value) => pct(value)}
+              seriesName="Taxa de cancelamento"
+            />
+          </ChartCard>
 
-      {airportChartData.length > 0 && (
-        <ChartCard
-          title="Taxa de Atraso — Top 10 Aeroportos Mais Movimentados"
-          source="gold.airport_performance"
-          metric="% de voos com atraso de chegada > 15 min"
-          unit="%"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={airportChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
-              <XAxis dataKey="aeroporto" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
-              <YAxis unit="%" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]}
-              />
-              <Bar dataKey="taxa_atraso" fill="#f79b4f" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      )}
+          <ChartCard
+            title="Volume de voos por companhia"
+            hint="pergunta 3"
+            source="gold.airline_performance"
+            metric="total_flights no ano"
+            unit="voos"
+          >
+            <BarList
+              items={topBy(airlines, (r) => r.total_flights, TOP_N_DASHBOARD).map((r) => ({
+                label: r.op_unique_carrier,
+                value: r.total_flights,
+              }))}
+              color={CHART_COLORS.navy}
+              format={(value) => num(value)}
+              seriesName="Total de voos"
+            />
+          </ChartCard>
+        </div>
+      </section>
 
-      {pieData.length > 0 && (
-        <ChartCard
-          title="Distribuição dos Motivos de Atraso"
-          source="gold.delay_causes"
-          metric="Soma de minutos de atraso atribuídos a cada motivo"
-          unit="minutos"
-        >
-          <div className="dashboard__pie-wrapper">
-            <PieChart width={420} height={300}>
-              <Pie
-                data={pieData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={90}
-                label={(entry) => entry.name}
-              >
-                {pieData.map((_, index) => (
-                  <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={(value: any) => Number(value).toLocaleString("pt-BR")}
-              />
-              <Legend wrapperStyle={{ color: AXIS_COLOR, fontSize: 13 }} />
-            </PieChart>
-          </div>
-        </ChartCard>
-      )}
+      <section className="section">
+        <SectionHeader title="Aeroportos" hint="perguntas 5 a 7" />
+        <div className="card-grid">
+          <ChartCard
+            title="Volume de voos por aeroporto"
+            hint="pergunta 6"
+            source="gold.airport_performance"
+            metric="total_flights no ano"
+            unit="voos"
+          >
+            <BarList
+              items={airportVolumeItems(airports, TOP_N_DASHBOARD)}
+              color={CHART_COLORS.navy}
+              format={(value) => num(value)}
+              seriesName="Total de voos"
+            />
+          </ChartCard>
 
-      {trendChartData.length > 0 && (
-        <ChartCard
-          title="Taxa de Atraso ao Longo do Ano"
-          source="gold.flight_trends"
-          metric="% de voos com atraso de chegada > 15 min, por mês"
-          unit="%"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trendChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
-              <XAxis dataKey="mes" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
-              <YAxis unit="%" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR, fontSize: 13 }} />
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={(value: any) => [`${value}%`, "Taxa de Atraso"]}
-              />
-              <Line
-                type="monotone"
-                dataKey="taxa_atraso"
-                stroke="#4f8ff7"
-                strokeWidth={2}
-                dot={{ r: 4, fill: "#4f8ff7" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      )}
+          <ChartCard
+            title="Atraso médio de partida"
+            hint="pergunta 5"
+            source="gold.airport_performance"
+            metric="average_departure_delay entre os aeroportos mais movimentados"
+            unit="minutos"
+          >
+            <BarList
+              items={airportDelayItems(airports, TOP_N_DASHBOARD)}
+              color={CHART_COLORS.delay}
+              format={(value) => mins(value)}
+              seriesName="Atraso médio de partida"
+            />
+          </ChartCard>
+        </div>
+      </section>
+
+      <section className="section">
+        <SectionHeader title="Rotas" hint="perguntas 8 a 10" />
+        <div className="card-grid">
+          <ChartCard
+            title="Top rotas por volume"
+            hint="pergunta 8"
+            source="gold.route_performance"
+            metric="total_flights por par origem–destino"
+            unit="voos"
+          >
+            <BarList
+              items={routeVolumeItems(routes, TOP_N_DASHBOARD)}
+              color={CHART_COLORS.navy}
+              format={(value) => num(value)}
+              seriesName="Total de voos"
+              labelWidth={78}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Top rotas por atraso médio"
+            hint="pergunta 9"
+            source="gold.route_performance"
+            metric="average_arrival_delay (rotas com mais de 2.000 voos)"
+            unit="minutos"
+          >
+            <BarList
+              items={routeDelayItems(routes, TOP_N_DASHBOARD)}
+              color={CHART_COLORS.delay}
+              format={(value) => mins(value)}
+              seriesName="Atraso médio de chegada"
+              labelWidth={78}
+            />
+          </ChartCard>
+        </div>
+      </section>
+
+      <section className="section">
+        <SectionHeader title="Tempo & motivos de atraso" hint="perguntas 11 a 16" />
+        <div className="card-grid">
+          <ChartCard
+            title="Taxa de atraso ao longo do ano"
+            hint={
+              peak
+                ? `pico em ${monthLong(peak.month).toLowerCase()} · ${pct(peak.delay_rate)}`
+                : undefined
+            }
+            source="gold.flight_trends"
+            metric="% de voos com atraso de chegada > 15 min, por mês"
+            unit="%"
+          >
+            <TrendLine points={trendPoints} />
+          </ChartCard>
+
+          <ChartCard
+            title="Distribuição dos motivos de atraso"
+            hint={causeHint}
+            source="gold.delay_causes"
+            metric="soma de minutos de atraso atribuídos a cada motivo"
+            unit="minutos"
+          >
+            <CauseDonut slices={slices} />
+          </ChartCard>
+        </div>
+      </section>
     </div>
   );
 }

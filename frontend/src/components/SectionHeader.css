@@ -1,0 +1,30 @@
+@import "../theme.css";
+
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.section-header__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-navy);
+  white-space: nowrap;
+}
+
+.section-header__hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.section-header__rule {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}

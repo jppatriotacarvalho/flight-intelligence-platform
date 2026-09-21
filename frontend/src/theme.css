@@ -1,28 +1,42 @@
 :root {
-  /* Cores base (tema claro) */
+  /* ---- Cores base (tema claro) ---- */
   --color-bg: #f5f6fa;
   --color-surface: #ffffff;
   --color-surface-hover: #f3f4f8;
+  --color-surface-subtle: #f9fafc; /* fundo de input e de <thead> */
   --color-border: #e5e7eb;
+  --color-border-subtle: #f1f2f6; /* linhas de tabela */
+  --color-track: #eef1f6; /* trilha de barra e grade de grafico */
   --color-text: #1a1a1a;
   --color-text-muted: #6b7280;
 
-  /* Accent (usado em bordas ativas, links, foco) */
+  /* ---- Accent ---- */
   --color-accent: #4f8ff7;
-  --color-accent-soft: rgba(79, 143, 247, 0.12);
+  --color-accent-hover: #2f6fd8;
+  --color-accent-soft: rgba(79, 143, 247, 0.08);
+  --color-accent-focus: rgba(79, 143, 247, 0.12);
   --color-accent-border: rgba(79, 143, 247, 0.35);
+  --color-accent-area: rgba(79, 143, 247, 0.14); /* area sob a linha do grafico */
 
-  /* Sidebar (mantem o navy escuro original) */
+  /* ---- Navy: sidebar, titulos e series de volume ---- */
+  --color-navy: #1a2b4c;
   --sidebar-bg: #1a2b4c;
   --sidebar-text: #ffffff;
   --sidebar-text-muted: #c9d4e8;
   --sidebar-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-active: rgba(255, 255, 255, 0.14);
 
-  /* Estado */
+  /* ---- Cores semanticas das series ---- */
+  --color-delay: #f79b4f; /* atraso */
+  --color-positive: #4fc78f; /* valores negativos de atraso = adiantado */
+  --color-cancel: #e05c5c; /* cancelamento */
+  --color-late-aircraft: #a05cf7; /* aeronave anterior */
+
+  /* ---- Estado ---- */
   --color-danger: #b91c1c;
   --color-success: #16a34a;
 
-  /* Espacamento */
+  /* ---- Espacamento ---- */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -30,8 +44,17 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* Outros */
-  --radius: 8px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* ---- Raios ---- */
+  --radius: 8px; /* inputs e botoes */
+  --radius-card: 10px;
+  --radius-chat: 12px;
+  --radius-pill: 999px;
+
+  /* ---- Sombra ---- */
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.05);
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.05);
+
+  /* ---- Tipografia ---- */
   --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
