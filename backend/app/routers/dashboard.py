@@ -36,4 +36,9 @@ def get_dashboard(db: Session = Depends(get_db)):
         average_cancellation_rate=totals.avg_cancellation_rate,
         most_punctual_airline=most_punctual.op_unique_carrier if most_punctual else None,
         most_delayed_airport=most_delayed_airport.airport if most_delayed_airport else None,
+        # Nome em campo separado: no KPI a sigla fica grande e o nome embaixo,
+        # em vez de um rotulo longo quebrando o card.
+        most_delayed_airport_name=(
+            most_delayed_airport.airport_name if most_delayed_airport else None
+        ),
     )

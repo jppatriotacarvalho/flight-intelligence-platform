@@ -30,6 +30,13 @@ CREATE TABLE IF NOT EXISTS airline_performance (
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS airport_performance (
     airport                 VARCHAR(5)     NOT NULL,
+    -- Nome vindo de silver.dim_airports (origin_city_name do dataset BTS).
+    -- A sigla continua sendo a chave: o nome nao e' unico
+    -- (ORD e MDW sao ambos "Chicago, IL").
+    airport_name            VARCHAR(60),
+    airport_city            VARCHAR(50),
+    airport_state           VARCHAR(40),
+    airport_label           VARCHAR(70),
     total_flights           INT            NOT NULL,
     delayed_flights         INT            NOT NULL,
     average_departure_delay DOUBLE,
@@ -44,7 +51,9 @@ CREATE TABLE IF NOT EXISTS airport_performance (
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS route_performance (
     origin                  VARCHAR(5)     NOT NULL,
+    origin_name             VARCHAR(60),
     dest                    VARCHAR(5)     NOT NULL,
+    dest_name               VARCHAR(60),
     total_flights           INT            NOT NULL,
     average_arrival_delay   DOUBLE,
     average_distance        DOUBLE,
@@ -87,3 +96,7 @@ CREATE INDEX idx_route_dest   ON route_performance (dest);
 -- Ordenações mais comuns no dashboard: maior atraso / maior volume
 CREATE INDEX idx_airline_delay_rate ON airline_performance (delay_rate DESC);
 CREATE INDEX idx_airport_delay_rate ON airport_performance (delay_rate DESC);
+
+-- Busca por nome/cidade do aeroporto (pagina Aeroportos e agente de IA)
+CREATE INDEX idx_airport_name ON airport_performance (airport_name);
+CREATE INDEX idx_airport_city ON airport_performance (airport_city);

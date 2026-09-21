@@ -19,6 +19,10 @@ class AirportPerformanceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     airport: str
+    airport_name: str | None = None
+    airport_city: str | None = None
+    airport_state: str | None = None
+    airport_label: str | None = None
     total_flights: int
     delayed_flights: int
     average_departure_delay: float | None
@@ -31,7 +35,9 @@ class RoutePerformanceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     origin: str
+    origin_name: str | None = None
     dest: str
+    dest_name: str | None = None
     total_flights: int
     average_arrival_delay: float | None
     average_distance: float | None
@@ -64,3 +70,4 @@ class DashboardOut(BaseModel):
     average_cancellation_rate: float | None
     most_punctual_airline: str | None
     most_delayed_airport: str | None
+    most_delayed_airport_name: str | None = None

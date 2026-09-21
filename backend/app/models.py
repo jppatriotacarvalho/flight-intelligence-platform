@@ -20,6 +20,11 @@ class AirportPerformance(Base):
     __tablename__ = "airport_performance"
 
     airport = Column(String(5), primary_key=True)
+    # Descritivos vindos de silver.dim_airports; a sigla segue sendo a PK.
+    airport_name = Column(String(60))
+    airport_city = Column(String(50))
+    airport_state = Column(String(40))
+    airport_label = Column(String(70))
     total_flights = Column(Integer, nullable=False)
     delayed_flights = Column(Integer, nullable=False)
     average_departure_delay = Column(Float)
@@ -32,7 +37,9 @@ class RoutePerformance(Base):
     __tablename__ = "route_performance"
 
     origin = Column(String(5), primary_key=True)
+    origin_name = Column(String(60))
     dest = Column(String(5), primary_key=True)
+    dest_name = Column(String(60))
     total_flights = Column(Integer, nullable=False)
     average_arrival_delay = Column(Float)
     average_distance = Column(Float)
