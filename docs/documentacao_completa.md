@@ -426,8 +426,8 @@ existir para responder a pelo menos uma pergunta daqui.
 
 ### 🛫 Aeroportos
 
-5. Qual aeroporto possui o maior atraso médio?
-6. Qual aeroporto possui o maior volume de voos (origem e destino)?
+5. Qual aeroporto possui o maior atraso médio na partida?
+6. Qual aeroporto possui o maior volume de partidas?
 7. Qual aeroporto possui a maior taxa de cancelamento?
 
 ---
@@ -443,8 +443,8 @@ existir para responder a pelo menos uma pergunta daqui.
 ### 📅 Tempo
 
 11. Qual mês do ano concentra mais atrasos?
-12. Qual dia da semana concentra mais atrasos?
-13. Como os atrasos evoluíram ao longo de 2024 (tendência mensal/diária)?
+12. ~~Qual dia da semana concentra mais atrasos?~~ — *fora do escopo atual (ver Critério de Validação)*
+13. Como os atrasos evoluíram mês a mês ao longo de 2024?
 
 ---
 
@@ -463,19 +463,36 @@ existir para responder a pelo menos uma pergunta daqui.
 | 1, 4 | op_unique_carrier, dep_delay, arr_delay | Por companhia |
 | 2 | op_unique_carrier, cancelled | Por companhia |
 | 3 | op_unique_carrier | Por companhia |
-| 5, 7 | origin, dest, arr_delay, dep_delay, cancelled | Por aeroporto |
-| 6 | origin, dest | Por aeroporto |
+| 5, 7 | origin, arr_delay, dep_delay, cancelled | Por aeroporto de origem |
+| 6 | origin | Por aeroporto de origem |
 | 8, 9, 10 | origin, dest, distance, arr_delay | Por rota (origem+destino) |
-| 11, 12, 13 | fl_date, month, day_of_week, arr_delay | Por período (mês/dia) |
+| 11, 13 | month, arr_delay | Por mês |
+| 12 | day_of_week, arr_delay | Por dia da semana — **não construída** |
 | 14, 15, 16 | carrier_delay, weather_delay, nas_delay, security_delay, late_aircraft_delay | Agregado por motivo |
 
 ---
 
 ### ✅ Critério de Validação
 
-Todas as perguntas acima já podem ser respondidas com as colunas confirmadas
-no `data_dictionary.md` e validadas no `data_quality.md` — nenhuma depende de
-dado que não existe no dataset.
+**15 das 16 perguntas são respondidas pela plataforma** — pelas 5 tabelas Gold,
+pela API, pelo dashboard e pelo agente de IA.
+
+Escopo real, declarado com transparência:
+
+- **P12 (dia da semana) não é respondida.** A coluna `day_of_week` existe no
+  dataset e chega intacta à Silver, mas nenhuma tabela Gold agrega por ela:
+  `gold.flight_trends` tem 1 linha por mês. Construí-la é uma extensão simples
+  (um `groupBy("day_of_week")` no notebook Gold, no mesmo formato de
+  `flight_trends`), registrada como melhoria futura.
+- **P5, P6 e P7 olham o aeroporto como origem.** `gold.airport_performance` é
+  agregada por `origin` (1 linha por aeroporto de partida). O lado das
+  chegadas (`dest`) não foi agregado; uma versão simétrica é possível pelo
+  mesmo padrão.
+- **P13 é mensal.** A tendência diária não foi construída.
+
+Todas as perguntas — inclusive P12 — dependem apenas de colunas confirmadas
+no `data_dictionary.md` e validadas no `data_quality.md`: o que falta é
+agregação, não dado.
 
 ---
 
