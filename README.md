@@ -158,6 +158,21 @@ npm install
 npm run dev
 ```
 
+> **Opcional — usuário só de leitura no MySQL local.** No Docker a API já
+> conecta assim; para reproduzir localmente, rode o SQL abaixo e aponte
+> `DB_USER`/`DB_PASSWORD` do `backend/.env` para ele (há um exemplo comentado
+> em `backend/.env.example`). Usar `root` continua funcionando.
+>
+> ```sql
+> CREATE USER IF NOT EXISTS 'flight_reader'@'localhost' IDENTIFIED BY 'sua_senha';
+> GRANT SELECT ON flight_intelligence.airline_performance TO 'flight_reader'@'localhost';
+> GRANT SELECT ON flight_intelligence.airport_performance TO 'flight_reader'@'localhost';
+> GRANT SELECT ON flight_intelligence.route_performance   TO 'flight_reader'@'localhost';
+> GRANT SELECT ON flight_intelligence.delay_causes        TO 'flight_reader'@'localhost';
+> GRANT SELECT ON flight_intelligence.flight_trends       TO 'flight_reader'@'localhost';
+> FLUSH PRIVILEGES;
+> ```
+
 ### Acessos
 
 | O quê | Endereço |

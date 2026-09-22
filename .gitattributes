@@ -1,0 +1,4 @@
+# Scripts de shell rodam dentro de containers Linux. Sem esta regra, o Git no
+# Windows os grava com CRLF no checkout e o entrypoint do MySQL falha com
+# "bad interpreter: /bin/bash^M".
+*.sh text eol=lf

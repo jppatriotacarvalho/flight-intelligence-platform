@@ -6,6 +6,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: flight_intelligence
+      # Lida pelo 03_readonly_user.sh para criar o usuario da aplicacao.
+      MYSQL_READONLY_PASSWORD: ${MYSQL_READONLY_PASSWORD}
     ports:
       - "3307:3306"   # 3307 no host para nao conflitar com um MySQL local ja rodando
     volumes:
@@ -15,6 +17,7 @@ services:
       # as tabelas antes de qualquer UPDATE ou GRANT tocar nelas.
       - ./database/flight_intelligence_dump.sql:/docker-entrypoint-initdb.d/01_dump.sql:ro
       - ./database/airport_names.sql:/docker-entrypoint-initdb.d/02_airport_names.sql:ro
+      - ./database/03_readonly_user.sh:/docker-entrypoint-initdb.d/03_readonly_user.sh:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -30,8 +33,11 @@ services:
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # A API conecta com um usuario que SO' tem SELECT nas 5 tabelas Gold:
+      # mesmo que o validador de SQL do agente falhe, nao ha' como escrever.
+      # O healthcheck do MySQL continua com root, que e' outro contexto.
+      DB_USER: flight_reader
+      DB_PASSWORD: ${MYSQL_READONLY_PASSWORD}
       DB_NAME: flight_intelligence
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
