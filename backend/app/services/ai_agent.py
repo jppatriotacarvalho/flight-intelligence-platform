@@ -115,6 +115,10 @@ def _call_gemini_with_fallback(contents, config):
     O orçamento de TEMPO_MAXIMO_TOTAL é conferido antes de cada tentativa
     e também vira o timeout da própria chamada HTTP, para que nenhuma
     requisição sozinha estoure o teto.
+
+    Retorna (resposta, modelo_que_respondeu). O modelo volta junto porque
+    quem chamou não tem como saber em que posição da cadeia a resposta
+    saiu — e o frontend mostrava um nome fixo que podia estar errado.
     """
     todos = list(dict.fromkeys(m for m in MODEL_FALLBACK_CHAIN if m))
     agora = time.monotonic()
@@ -150,13 +154,14 @@ def _call_gemini_with_fallback(contents, config):
                 break
 
             try:
-                return _get_client().models.generate_content(
+                resposta = _get_client().models.generate_content(
                     model=modelo,
                     contents=contents,
                     config=_config_com_timeout(
                         config, min(restante, TEMPO_MAXIMO_POR_CHAMADA)
                     ),
                 )
+                return resposta, modelo
             except Exception as erro:
                 ultimo_erro = erro
 
@@ -278,7 +283,7 @@ def _extrair_json(texto: str) -> dict:
         return json.loads(match.group(0))
 
 
-def generate_plan(question: str) -> tuple[str, str]:
+def generate_plan(question: str) -> tuple[str, str, str]:
     """
     ETAPA 20.3 — UMA unica chamada ao Gemini devolve o SQL e o molde da
     resposta em portugues.
@@ -290,7 +295,8 @@ def generate_plan(question: str) -> tuple[str, str]:
     cota pela metade e ainda elimina o risco de o modelo inventar
     numeros, porque ele nunca chega a ver os dados.
 
-    Retorna (sql, molde_da_resposta) ou (FORA_DE_CONTEXTO_TOKEN, "").
+    Retorna (sql, molde_da_resposta, modelo_que_respondeu) — ou
+    (FORA_DE_CONTEXTO_TOKEN, "", modelo).
     """
     schema_context = _build_schema_context()
     # A lista entra so' como CONTEXTO do prompt — nao e' tabela e nao entra
@@ -339,7 +345,7 @@ Regras para o campo "resposta":
    {{"sql": "{FORA_DE_CONTEXTO_TOKEN}", "resposta": ""}}
 """.strip()
 
-    response = _call_gemini_with_fallback(
+    response, modelo = _call_gemini_with_fallback(
         contents=question,
         config={"system_instruction": system_instruction, "temperature": 0},
     )
@@ -351,7 +357,7 @@ Regras para o campo "resposta":
     if not sql:
         raise ValueError("O modelo nao devolveu nenhuma consulta SQL.")
 
-    return sql, molde
+    return sql, molde, modelo
 
 
 def validate_sql(sql: str) -> str:

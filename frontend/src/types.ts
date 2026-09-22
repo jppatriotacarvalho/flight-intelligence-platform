@@ -78,4 +78,6 @@ export interface ChatResponse {
   results: Record<string, unknown>[] | null;
   answer: string;
   blocked: boolean;
+  /** Modelo da cadeia de fallback que realmente respondeu. */
+  model: string | null;
 }

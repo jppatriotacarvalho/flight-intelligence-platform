@@ -4,18 +4,12 @@ import type { ChatResponse } from "../types";
 import { formatCell, tableFromSql } from "../lib/format";
 import "./Chat.css";
 
-/**
- * Modelo exibido no cabecalho. Espelha o GEMINI_MODEL do backend; quando ele
- * esta' fora do ar a cadeia de fallback do ai_agent.py tenta outros modelos,
- * entao o rotulo indica o preferencial, nao necessariamente o que respondeu.
- */
-const AGENT_MODEL = "gemini-3.8-flash";
-
 /** Quantas linhas do resultado aparecem na previa dentro da bolha. */
 const PREVIEW_ROWS = 3;
 
 const SUGGESTIONS = [
   "Qual aeroporto tem mais voos?",
+  "Qual a taxa de atraso da Delta?",
   "Qual mês teve mais atrasos?",
   "Quais as 5 rotas com maior atraso?",
 ];
@@ -82,7 +76,11 @@ function buildMeta(response: ChatResponse, elapsedMs: number): string | undefine
   if (!response.results) return undefined;
   const tabela = tableFromSql(response.sql);
   const linhas = `${response.results.length} ${response.results.length === 1 ? "linha" : "linhas"}`;
-  return [tabela, linhas, `${Math.round(elapsedMs)} ms`].filter(Boolean).join(" · ");
+  // O modelo vem da resposta, nao de uma constante: a cadeia de fallback pode
+  // ter respondido com outro modelo que nao o preferencial.
+  return [tabela, linhas, `${Math.round(elapsedMs)} ms`, response.model]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export default function Chat() {
@@ -141,7 +139,7 @@ export default function Chat() {
     <div className="chat">
       <div className="chat__header">
         <span className="chat__status-dot" />
-        <span className="chat__agent">Agente de dados · {AGENT_MODEL}</span>
+        <span className="chat__agent">Agente de dados · Gemini</span>
         <span className="chat__spacer" />
         <span className="chat__guards">somente SELECT · LIMIT 100</span>
       </div>
@@ -190,12 +188,11 @@ export default function Chat() {
         {loading && (
           <div className="chat__thinking">
             <span className="spinner" aria-hidden="true" />
-            <div className="chat__thinking-text">
-              <span className="chat__thinking-title">
-                Gerando SQL e validando contra a whitelist…
-              </span>
-              <span className="chat__thinking-step">passo 2 de 3 · executando consulta</span>
-            </div>
+            {/* Um texto so', e honesto: o frontend nao tem como saber em que
+                passo o backend esta', e o "passo 2 de 3" era fixo. */}
+            <span className="chat__thinking-title">
+              Gerando SQL, validando e consultando o banco…
+            </span>
           </div>
         )}
       </div>

@@ -26,6 +26,9 @@ class ChatResponse(BaseModel):
     results: list[dict] | None = None
     answer: str
     blocked: bool = False
+    # Qual modelo da cadeia de fallback respondeu. O frontend mostrava um nome
+    # fixo, que ficava errado sempre que o preferencial estava sem cota.
+    model: str | None = None
 
 
 @router.post("", response_model=ChatResponse)
@@ -44,7 +47,7 @@ def ask(request: ChatRequest) -> ChatResponse:
     # ETAPA 21.5 — Responder somente sobre o contexto permitido
     # Uma unica chamada ao Gemini devolve o SQL e o molde da resposta.
     try:
-        sql_gerado, molde_resposta = generate_plan(pergunta)
+        sql_gerado, molde_resposta, modelo = generate_plan(pergunta)
     except Exception:
         logger.exception("Falha ao gerar o plano para a pergunta: %r", pergunta)
         return ChatResponse(
@@ -66,6 +69,7 @@ def ask(request: ChatRequest) -> ChatResponse:
                 "desta plataforma."
             ),
             blocked=True,
+            model=modelo,
         )
 
     # Pipeline de segurança (Etapa 21)
@@ -78,6 +82,7 @@ def ask(request: ChatRequest) -> ChatResponse:
             results=None,
             answer=f"Não foi possível executar essa consulta com segurança: {erro}",
             blocked=True,
+            model=modelo,
         )
 
     # Execução (somente leitura)
@@ -94,6 +99,7 @@ def ask(request: ChatRequest) -> ChatResponse:
             results=None,
             answer="Nao foi possivel consultar o banco de dados para essa pergunta.",
             blocked=True,
+            model=modelo,
         )
 
     # Formatacao local: nao gasta cota e nao depende da API estar de pe.
@@ -105,4 +111,5 @@ def ask(request: ChatRequest) -> ChatResponse:
         results=linhas,
         answer=resposta_natural,
         blocked=False,
+        model=modelo,
     )
