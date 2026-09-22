@@ -17,6 +17,8 @@ import {
 export interface BarItem {
   label: string;
   value: number;
+  /** Rotulo do tooltip quando o eixo mostra um nome curto ("YX · Republic Airways"). */
+  tooltip?: string;
 }
 
 interface BarListProps {
@@ -57,6 +59,7 @@ export default function BarList({
   }
 
   const byLabel = new Map(items.map((item) => [item.label, item.value]));
+  const byTooltip = new Map(items.map((item) => [item.label, item.tooltip]));
   const hasNegative = items.some((item) => item.value < 0);
 
   // A coluna de valores se dimensiona pelo texto mais longo da serie. Com
@@ -132,6 +135,7 @@ export default function BarList({
           cursor={{ fill: "rgba(79,143,247,.06)" }}
           contentStyle={TOOLTIP_STYLE}
           labelStyle={TOOLTIP_LABEL_STYLE}
+          labelFormatter={(label: any) => byTooltip.get(String(label)) ?? label}
           formatter={(value: any) => [format(Number(value)), seriesName]}
         />
         <Bar

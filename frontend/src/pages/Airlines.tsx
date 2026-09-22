@@ -3,10 +3,15 @@ import { getAirlines } from "../services/api";
 import type { AirlinePerformance } from "../types";
 import BarList from "../components/BarList";
 import ChartCard from "../components/ChartCard";
+import CodeCell from "../components/CodeCell";
 import DataTable from "../components/DataTable";
 import PageState from "../components/PageState";
 import { CHART_COLORS } from "../lib/chart";
 import { mins, num, pct, topBy } from "../lib/format";
+import { airlineItems } from "./chartData";
+
+/** "Southwest" e' o nome curto mais longo; 52px (o padrao, para siglas) corta. */
+const AIRLINE_LABEL_WIDTH = 78;
 
 export default function Airlines() {
   const [airlines, setAirlines] = useState<AirlinePerformance[]>([]);
@@ -39,13 +44,11 @@ export default function Airlines() {
             unit="%"
           >
             <BarList
-              items={topBy(airlines, (r) => r.delay_rate, total).map((r) => ({
-                label: r.op_unique_carrier,
-                value: r.delay_rate ?? 0,
-              }))}
+              items={airlineItems(airlines, (r) => r.delay_rate)}
               color={CHART_COLORS.accent}
               format={(value) => pct(value)}
               seriesName="Taxa de atraso"
+              labelWidth={AIRLINE_LABEL_WIDTH}
             />
           </ChartCard>
 
@@ -57,13 +60,11 @@ export default function Airlines() {
             unit="%"
           >
             <BarList
-              items={topBy(airlines, (r) => r.cancellation_rate, total).map((r) => ({
-                label: r.op_unique_carrier,
-                value: r.cancellation_rate ?? 0,
-              }))}
+              items={airlineItems(airlines, (r) => r.cancellation_rate)}
               color={CHART_COLORS.cancel}
               format={(value) => pct(value)}
               seriesName="Taxa de cancelamento"
+              labelWidth={AIRLINE_LABEL_WIDTH}
             />
           </ChartCard>
 
@@ -75,13 +76,11 @@ export default function Airlines() {
             unit="voos"
           >
             <BarList
-              items={porVolume.map((r) => ({
-                label: r.op_unique_carrier,
-                value: r.total_flights,
-              }))}
+              items={airlineItems(airlines, (r) => r.total_flights)}
               color={CHART_COLORS.navy}
               format={(value) => num(value)}
               seriesName="Total de voos"
+              labelWidth={AIRLINE_LABEL_WIDTH}
             />
           </ChartCard>
         </div>
@@ -97,7 +96,12 @@ export default function Airlines() {
         error={error}
         data={porVolume}
         columns={[
-          { header: "Companhia", render: (r) => r.op_unique_carrier, mono: true },
+          {
+            header: "Companhia",
+            render: (r) => (
+              <CodeCell code={r.op_unique_carrier} name={r.airline_name} />
+            ),
+          },
           { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
           { header: "Taxa de atraso", align: "right", render: (r) => pct(r.delay_rate) },
           {

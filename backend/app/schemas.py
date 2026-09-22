@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
+
+from app.carriers import carrier_name, carrier_short_name
 
 
 class AirlinePerformanceOut(BaseModel):
@@ -13,6 +15,18 @@ class AirlinePerformanceOut(BaseModel):
     diverted_flights: int
     delay_rate: float | None
     cancellation_rate: float | None
+
+    # Decisao 04: o nome nao vem do MySQL, e' derivado do codigo na borda da
+    # API. "9E" e "OO" nao dizem nada para quem le o dashboard.
+    @computed_field
+    @property
+    def airline_name(self) -> str | None:
+        return carrier_name(self.op_unique_carrier)
+
+    @computed_field
+    @property
+    def airline_short_name(self) -> str | None:
+        return carrier_short_name(self.op_unique_carrier)
 
 
 class AirportPerformanceOut(BaseModel):
@@ -71,6 +85,7 @@ class DashboardOut(BaseModel):
     average_arrival_delay: float | None
     cancellation_rate: float | None
     most_punctual_airline: str | None
+    most_punctual_airline_name: str | None = None
     most_punctual_airline_delay_rate: float | None = None
     most_delayed_airport: str | None
     most_delayed_airport_name: str | None = None

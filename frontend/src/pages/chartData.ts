@@ -1,4 +1,9 @@
-import type { AirportPerformance, DelayCauses, RoutePerformance } from "../types";
+import type {
+  AirlinePerformance,
+  AirportPerformance,
+  DelayCauses,
+  RoutePerformance,
+} from "../types";
 import type { BarItem } from "../components/BarList";
 import type { CauseSlice } from "../components/CauseDonut";
 import {
@@ -7,6 +12,25 @@ import {
   POOL_AEROPORTOS_MOVIMENTADOS,
 } from "../lib/chart";
 import { topBy } from "../lib/format";
+
+/**
+ * Serie por companhia com o nome curto no eixo e "YX · Republic Airways" no
+ * tooltip: o codigo sozinho nao e' reconhecivel, e o nome completo nao cabe
+ * na coluna de rotulos (Decisao 04).
+ */
+export function airlineItems(
+  airlines: AirlinePerformance[],
+  get: (row: AirlinePerformance) => number | null,
+  limit = airlines.length,
+): BarItem[] {
+  return topBy(airlines, get, limit).map((airline) => ({
+    label: airline.airline_short_name ?? airline.op_unique_carrier,
+    value: get(airline) ?? 0,
+    tooltip: airline.airline_name
+      ? `${airline.op_unique_carrier} · ${airline.airline_name}`
+      : airline.op_unique_carrier,
+  }));
+}
 
 export function routeLabel(route: RoutePerformance): string {
   return `${route.origin}\u2192${route.dest}`;

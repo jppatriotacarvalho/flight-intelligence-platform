@@ -1,5 +1,9 @@
 export interface AirlinePerformance {
   op_unique_carrier: string;
+  /** Nome oficial (Decisao 04) — derivado do codigo no backend, nao vem do MySQL. */
+  airline_name: string | null;
+  /** Nome curto, para caber no rotulo de um grafico de barras. */
+  airline_short_name: string | null;
   total_flights: number;
   delayed_flights: number;
   average_departure_delay: number | null;
@@ -60,6 +64,7 @@ export interface DashboardSummary {
   average_arrival_delay: number | null;
   cancellation_rate: number | null;
   most_punctual_airline: string | null;
+  most_punctual_airline_name: string | null;
   most_punctual_airline_delay_rate: number | null;
   most_delayed_airport: string | null;
   most_delayed_airport_name: string | null;

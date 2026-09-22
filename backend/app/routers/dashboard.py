@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
+from app.carriers import carrier_name
 from app.database import get_db
 from app import models, schemas
 
@@ -89,6 +90,9 @@ def get_dashboard(db: Session = Depends(get_db)):
         average_arrival_delay=average_arrival_delay,
         cancellation_rate=cancellation_rate,
         most_punctual_airline=most_punctual.op_unique_carrier if most_punctual else None,
+        most_punctual_airline_name=(
+            carrier_name(most_punctual.op_unique_carrier) if most_punctual else None
+        ),
         most_punctual_airline_delay_rate=most_punctual.delay_rate if most_punctual else None,
         most_delayed_airport=most_delayed_airport.airport if most_delayed_airport else None,
         # Nome em campo separado: no KPI a sigla fica grande e o nome embaixo,

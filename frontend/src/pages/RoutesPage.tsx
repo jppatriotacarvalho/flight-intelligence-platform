@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getRoutes } from "../services/api";
 import type { RoutePerformance } from "../types";
-import AirportCell from "../components/AirportCell";
+import CodeCell from "../components/CodeCell";
 import BarList from "../components/BarList";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
@@ -137,11 +137,11 @@ export default function RoutesPage() {
         columns={[
           {
             header: "Origem",
-            render: (r) => <AirportCell code={r.origin} name={r.origin_name} />,
+            render: (r) => <CodeCell code={r.origin} name={r.origin_name} />,
           },
           {
             header: "Destino",
-            render: (r) => <AirportCell code={r.dest} name={r.dest_name} />,
+            render: (r) => <CodeCell code={r.dest} name={r.dest_name} />,
           },
           { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
           {

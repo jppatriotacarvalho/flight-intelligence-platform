@@ -105,7 +105,12 @@ export default function Dashboard() {
     {
       label: "Companhia mais pontual",
       value: summary.most_punctual_airline ?? "—",
-      sub: `${pct(summary.most_punctual_airline_delay_rate)} dos voos atrasados`,
+      sub: [
+        summary.most_punctual_airline_name,
+        pct(summary.most_punctual_airline_delay_rate),
+      ]
+        .filter(Boolean)
+        .join(" · "),
       accent: CHART_COLORS.positive,
     },
     {

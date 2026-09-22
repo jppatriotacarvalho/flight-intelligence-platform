@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAirports } from "../services/api";
 import type { AirportPerformance } from "../types";
-import AirportCell from "../components/AirportCell";
+import CodeCell from "../components/CodeCell";
 import BarList from "../components/BarList";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
@@ -123,7 +123,7 @@ export default function Airports() {
         columns={[
           {
             header: "Aeroporto",
-            render: (r) => <AirportCell code={r.airport} name={r.airport_name} />,
+            render: (r) => <CodeCell code={r.airport} name={r.airport_name} />,
           },
           { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
           { header: "Taxa de atraso", align: "right", render: (r) => pct(r.delay_rate) },

@@ -6,6 +6,7 @@ import logging
 from decimal import Decimal
 from google import genai
 from sqlalchemy import text
+from app.carriers import carrier_name, carrier_prompt_list
 from app.database import engine
 
 logger = logging.getLogger(__name__)
@@ -292,6 +293,9 @@ def generate_plan(question: str) -> tuple[str, str]:
     Retorna (sql, molde_da_resposta) ou (FORA_DE_CONTEXTO_TOKEN, "").
     """
     schema_context = _build_schema_context()
+    # A lista entra so' como CONTEXTO do prompt — nao e' tabela e nao entra
+    # na whitelist. Serve para o modelo traduzir "Delta" em 'DL' no WHERE.
+    carriers_context = carrier_prompt_list()
 
     system_instruction = f"""
 Você converte perguntas em português sobre dados de voos em consultas SQL
@@ -311,6 +315,10 @@ Regras para o campo "sql":
    pergunta citar uma CIDADE ou o nome do aeroporto ("Atlanta", "Chicago"),
    filtre por airport_name ou airport_city com LIKE, nunca por igualdade
    com a sigla. Ex.: WHERE airport_city LIKE '%Atlanta%'.
+4.1.1. Companhias: a chave é o código em op_unique_carrier. Quando a
+   pergunta citar o NOME da companhia, traduza para o código desta lista:
+{carriers_context}
+   Ex.: "a Delta" vira WHERE op_unique_carrier = 'DL'.
 4.2. Sempre que a resposta citar um aeroporto, inclua no SELECT o nome
    (airport_label ou airport_name) E TAMBÉM a sigla da mesma tabela
    (airport, origin ou dest). A sigla é obrigatória: quando o nome estiver
@@ -461,6 +469,13 @@ def _formatar_valor(coluna: str, valor) -> str:
             return f"{int(numero):,}".replace(",", ".")
 
         return f"{numero:.2f}".replace(".", ",")
+
+    # "YX" sozinho nao diz nada na resposta; o nome vem do dicionario da
+    # Decisao 04, nao do banco (nao existe coluna de nome em Gold).
+    if coluna.lower() == "op_unique_carrier":
+        nome = carrier_name(str(valor))
+        if nome:
+            return f"{valor} ({nome})"
 
     return str(valor)
 
