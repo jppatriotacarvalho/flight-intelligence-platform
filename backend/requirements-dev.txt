@@ -1,0 +1,8 @@
+# Dependencias so' de desenvolvimento (a imagem Docker nao instala este arquivo).
+# Rodar a suite:
+#   venv\Scripts\python -m pytest backend/tests -q
+-r requirements.txt
+
+pytest==8.3.3
+# httpx e' o cliente HTTP que o TestClient do FastAPI usa por baixo.
+httpx==0.28.1
