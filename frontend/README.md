@@ -27,11 +27,12 @@ src/
 │   ├── KpiCard         número grande + rótulo (linha de KPIs do dashboard)
 │   ├── SectionHeader   título de seção com subtítulo
 │   ├── FilterBar       campo de busca e filtros das páginas de dados
-│   ├── DataTable       tabela com ordenação e renderização por coluna
-│   ├── BarList         ranking horizontal (top N)
-│   ├── TrendLine       série temporal mensal
+│   ├── DataTable       tabela ordenável (sortValue, defaultSort, rowLimit)
+│   ├── BarList         ranking horizontal (reference, emptyMessage, tooltip)
+│   ├── TrendLine       série temporal mensal, com pico e vale marcados
 │   ├── CauseDonut      distribuição dos motivos de atraso
-│   ├── AirportCell     sigla IATA em destaque + nome do aeroporto abaixo
+│   ├── AirlineScatter  atraso × cancelamento, bolha = volume
+│   ├── CodeCell        código em destaque + nome abaixo (aeroporto ou companhia)
 │   ├── ChartCard       moldura de gráfico com fonte/métrica/unidade
 │   ├── PageState       carregamento (esqueletos) e erro, padronizados
 │   └── Layout          navegação e casca da aplicação
@@ -52,5 +53,16 @@ src/
 - **Toda página usa `PageState`** para carregamento e erro — nada de
   "Carregando..." escrito à mão.
 - **Cor de gráfico vem de `lib/chart.ts`**, nunca hexadecimal solto no JSX.
-- **Aeroporto aparece com sigla + nome** (`AirportCell`), nunca só a sigla —
-  ver Decisão 03 em `docs/decision_log.md`.
+- **Código aparece com o nome abaixo** (`CodeCell`), nunca só o código — vale
+  para a sigla do aeroporto (Decisão 03) e para o código da companhia
+  (Decisão 04), em `docs/decision_log.md`. Sem nome, mostra só o código: uma
+  coluna de travessões não informa nada.
+- **Limiar de volume mora em `lib/chart.ts`**, nunca solto no JSX —
+  `POOL_AEROPORTOS_MOVIMENTADOS`, `MIN_FLIGHTS_FOR_DELAY_RANKING`,
+  `MIN_FLIGHTS_AIRPORT_TABLE`, `MIN_FLIGHTS_ROUTE_TABLE`. Um ranking por taxa
+  sem piso coloca um aeroporto de 37 voos no topo (Decisão 05), e o piso
+  usado sempre aparece na tela — na legenda do gráfico ou num checkbox.
+- **Ordenar é responsabilidade da `DataTable`.** A página entrega **todos** os
+  registros filtrados e declara `sortValue` (valor cru) por coluna; a tabela
+  ordena e só então corta em `rowLimit`. Cortar antes faria "ordenar por
+  cancelamento" reordenar apenas as primeiras linhas.

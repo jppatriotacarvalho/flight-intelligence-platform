@@ -35,7 +35,9 @@ CREATE TABLE IF NOT EXISTS airport_performance (
     -- (ORD e MDW sao ambos "Chicago, IL").
     airport_name            VARCHAR(60),
     airport_city            VARCHAR(50),
-    airport_state           VARCHAR(40),
+    -- 60, nao 40: o maior *_state_nm do dataset e'
+    -- "U.S. Pacific Trust Territories and Possessions", com 46 caracteres.
+    airport_state           VARCHAR(60),
     airport_label           VARCHAR(70),
     total_flights           INT            NOT NULL,
     delayed_flights         INT            NOT NULL,

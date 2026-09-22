@@ -185,14 +185,27 @@ npm run dev
 
 ## ✨ Funcionalidades
 
-- **Dashboard interativo** — KPIs (total de voos, taxa de atraso, taxa de
-  cancelamento, companhia mais pontual, aeroporto mais atrasado) e gráficos
-  (barras, pizza, linha) com fonte/métrica/unidade documentadas em cada um.
+- **Dashboard interativo** — 6 KPIs (total de voos, taxa de atraso, atraso
+  médio de chegada, taxa de cancelamento, companhia mais pontual, aeroporto
+  mais atrasado), cada um com a linha de apoio dizendo o **critério** usado, e
+  um gráfico próprio para cada pergunta de negócio citada nas seções —
+  fonte/métrica/unidade documentadas em todos.
+- **Nomes de verdade, não códigos** — aeroportos aparecem como `ATL` +
+  "Atlanta, GA" e companhias como `YX` + "Republic Airways" (Decisões 03 e 04).
+  O código continua sendo a chave; o nome é contexto.
+- **Tabelas ordenáveis** — clique no cabeçalho para ordenar por qualquer
+  coluna, em cima de **todos** os registros filtrados (não só da primeira
+  página), com nulos no fim e navegação por teclado.
+- **Piso de volume nos rankings** — ordenar por taxa sem piso coloca um
+  aeroporto de 37 voos no topo. Os limiares são constantes nomeadas, aparecem
+  na tela e podem ser desmarcados (Decisão 05).
+- **Dispersão atraso × cancelamento** — as duas taxas de cada companhia no
+  mesmo gráfico, bolha proporcional ao volume e linhas nas médias ponderadas
+  do setor, formando quadrantes.
 - **Páginas de dados** — Companhias, Aeroportos e Rotas (com filtro por
   origem/destino), Atrasos (motivos e evolução mensal).
 - **Busca por sigla ou por nome** — `GET /airports?search=` casa tanto "ATL"
-  quanto "Atlanta", e as tabelas mostram a sigla com o nome do aeroporto
-  abaixo.
+  quanto "Atlanta".
 - **API REST** — endpoints `/dashboard`, `/airlines`, `/airports`,
   `/routes`, `/delays`, `/trends`, documentação automática em `/docs`.
 - **Chat com IA** — pergunte em português ("Qual companhia tem a maior
@@ -219,6 +232,9 @@ chega ao banco sem passar por um validador. Documentação completa em
   de sessão também
 - `LIMIT` obrigatório (máx. 100 linhas)
 - Perguntas fora do escopo são recusadas antes mesmo de gerar SQL
+- **Usuário MySQL somente leitura** — no Docker, a API conecta como
+  `flight_reader`, com `GRANT SELECT` tabela por tabela nas 5 tabelas Gold.
+  A aplicação **não consegue escrever mesmo que o validador falhe**
 - Nenhuma credencial é enviada ao modelo, e o erro do banco não volta cru
   pela API
 
@@ -239,12 +255,32 @@ chega ao banco sem passar por um validador. Documentação completa em
 
 ## 🧪 Testes
 
-Pipeline de dados validado (7.079.081 registros, Bronze → Silver → Gold
-sem perdas), API testada com casos de erro, agente de IA testado contra
-tentativas de burlar a segurança via linguagem natural, e frontend
-verificado em telas estreitas. Dois bugs reais foram encontrados e
-corrigidos durante os testes. Relatório em
-[`docs/testing.md`](docs/documentacao_completa.md).
+**Suíte automatizada — 35 testes:**
+
+```bash
+# uma vez
+backendenv\Scripts\python -m pip install -r backend/requirements-dev.txt
+
+# a cada mudança
+backendenv\Scripts\python -m pytest backend/tests -q
+```
+
+Nenhum teste precisa de MySQL nem de cota do Gemini: o de dashboard sobe um
+SQLite em memória e sobrescreve a dependência `get_db`; os outros testam
+funções puras.
+
+| Arquivo | O que cobre |
+|---|---|
+| `test_validate_sql.py` | os 10 payloads de ataque e as 5 consultas legítimas documentadas, caso a caso |
+| `test_format_answer.py` | formatação pt-BR, fallback de nome nulo para sigla, nome da companhia |
+| `test_dashboard.py` | KPIs Σ ÷ Σ, atraso ponderado e piso de volume do aeroporto mais atrasado |
+
+Além disso: pipeline de dados validado (7.079.081 registros, Bronze → Silver →
+Gold sem perdas), API testada com casos de erro, agente de IA testado contra
+tentativas de burlar a segurança via linguagem natural, e frontend verificado
+em telas estreitas. **Seis bugs reais** foram encontrados e corrigidos.
+Relatório completo no
+[capítulo "Testes Realizados" da documentação](docs/documentacao_completa.md).
 
 ---
 

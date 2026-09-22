@@ -12,6 +12,14 @@
 USE flight_intelligence;
 
 -- ------------------------------------------------------------
+-- airport_state precisa de 46 caracteres: o maior *_state_nm do
+-- dataset e' 'U.S. Pacific Trust Territories and Possessions'. O dump
+-- cria a coluna com VARCHAR(40) e o UPDATE morria com erro 1406
+-- ('Data too long'), abortando a carga no meio.
+-- ------------------------------------------------------------
+ALTER TABLE airport_performance MODIFY airport_state VARCHAR(60);
+
+-- ------------------------------------------------------------
 -- airport_performance: 348 aeroportos
 -- ------------------------------------------------------------
 UPDATE airport_performance SET airport_name = 'Allentown/Bethlehem/Easton, PA', airport_city = 'Allentown/Bethlehem/Easton', airport_state = 'Pennsylvania', airport_label = 'ABE - Allentown/Bethlehem/Easton, PA' WHERE airport = 'ABE';

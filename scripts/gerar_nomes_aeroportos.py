@@ -39,6 +39,9 @@ COLUNAS = [
 
 CHUNK = 500_000
 
+# Largura de airport_state no banco. Ver o comentario no SQL gerado.
+LARGURA_STATE = 60
+
 
 def contar_ocorrencias(caminho_csv: Path) -> Counter:
     """
@@ -149,6 +152,14 @@ def gerar_sql(dimensao: dict[str, dict[str, str]], rotas: set[tuple[str, str]]) 
         "-- ============================================================",
         "",
         "USE flight_intelligence;",
+        "",
+        "-- ------------------------------------------------------------",
+        "-- airport_state precisa de 46 caracteres: o maior *_state_nm do",
+        "-- dataset e' 'U.S. Pacific Trust Territories and Possessions'. O dump",
+        "-- cria a coluna com VARCHAR(40) e o UPDATE morria com erro 1406",
+        "-- ('Data too long'), abortando a carga no meio.",
+        "-- ------------------------------------------------------------",
+        f"ALTER TABLE airport_performance MODIFY airport_state VARCHAR({LARGURA_STATE});",
         "",
         "-- ------------------------------------------------------------",
         f"-- airport_performance: {len(dimensao)} aeroportos",

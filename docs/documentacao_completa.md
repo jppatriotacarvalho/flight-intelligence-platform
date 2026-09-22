@@ -494,6 +494,22 @@ Todas as perguntas — inclusive P12 — dependem apenas de colunas confirmadas
 no `data_dictionary.md` e validadas no `data_quality.md`: o que falta é
 agregação, não dado.
 
+#### Cobertura no dashboard
+
+Cada pergunta citada num cabeçalho de seção tem agora **gráfico próprio** —
+antes, três apareciam só na API ou numa tabela de 100 linhas:
+
+| Pergunta | Onde aparece | O que mudou |
+|---|---|---|
+| **P1** — maior atraso médio por companhia | "Atraso médio de chegada por companhia" | gráfico novo, em minutos. O card que existia media **% de voos atrasados** e estava rotulado "pergunta 1" — isso é a P4 |
+| **P4** — companhia mais pontual | "Taxa de atraso por companhia" | passou a mostrar as **15** companhias; com Top 8, a mais pontual (YX) ficava justamente de fora |
+| **P7** — maior taxa de cancelamento por aeroporto | "Taxa de cancelamento por aeroporto" | gráfico novo, entre os 20 mais movimentados (EWR no topo) |
+| **P10** — rota mais longa | "Rotas mais longas" | gráfico novo, por par de cidades (BOS↔HNL, 5.095 mi). Antes só existia na tabela, ordenada por volume |
+
+A seção "Tempo & motivos" passou a declarar **"perguntas 11, 13 a 16"** em vez
+de "11 a 16": a P12 está fora do escopo, e citá-la no cabeçalho prometia um
+gráfico que não existe.
+
 ---
 
 ### 📤 Status
@@ -745,7 +761,7 @@ Cada KPI abaixo existe para responder pelo menos uma pergunta definida em
 - **Colunas utilizadas:** `arr_delay`
 - **Regra:** um voo é considerado "atrasado" quando `arr_delay > 15` minutos. Esse limiar de 15 minutos é o padrão adotado pelo próprio BTS (fonte original do dataset) para definir atraso oficial — não foi inventado para este projeto.
 - **Justificativa:** usar um limiar reconhecido evita definir um critério arbitrário de "atraso" e mantém a métrica comparável com relatórios oficiais do setor.
-- **Observação:** registros com `arr_delay` nulo (voos cancelados/desviados, ver `silver_rules.md` Regra 02) são excluídos do cálculo — não contam nem como atrasados nem como pontuais.
+- **Observação — o denominador inclui cancelados e desviados.** A Gold divide por `count(*)`, o total de voos programados (KPI 01), e não pelos voos com `arr_delay` preenchido. Registros com `arr_delay` nulo (cancelados/desviados, ver `silver_rules.md` Regra 02) **não** contam como atrasados, mas **continuam no denominador**. A taxa lê-se como "voos atrasados ÷ voos programados". Este texto foi corrigido para descrever o que o código realmente faz — o notebook não mudou.
 
 ---
 
@@ -756,6 +772,7 @@ Cada KPI abaixo existe para responder pelo menos uma pergunta definida em
 - **Colunas utilizadas:** `arr_delay`
 - **Regra:** calculado apenas sobre voos com `arr_delay` não nulo. Valores negativos (voo adiantado) entram no cálculo normalmente, pois são dados válidos.
 - **Justificativa:** representa o atraso "líquido" médio, incluindo o efeito de voos adiantados — mais realista que olhar só para os atrasados.
+- **Agregação no dashboard:** o KPI do painel combina as 15 companhias com **média ponderada por voos concluídos** (`total_flights - cancelled_flights - diverted_flights`), que são exatamente as linhas em que `arr_delay` existe. Ponderar por `total_flights` contaria voos sem horário de chegada no peso.
 
 ---
 
@@ -815,6 +832,7 @@ Cada KPI abaixo existe para responder pelo menos uma pergunta definida em
 - **Fórmula:** `MAX(AVG(dep_delay))` agrupado por `origin`
 - **Colunas utilizadas:** `origin`, `dep_delay`
 - **Regra:** considera apenas o papel do aeroporto como origem (partida). Uma versão simétrica pode ser feita para `dest`/`arr_delay` se necessário.
+- **Piso de volume — entre os 20 aeroportos mais movimentados.** Sem esse recorte, o KPI apontava **MGW, com 37 voos no ano inteiro** e 72,6 min de atraso médio: número correto, leitura errada. O critério é: primeiro os 20 aeroportos com maior `total_flights`, depois o maior `average_departure_delay` entre eles — hoje **DFW, 18,93 min**. O valor 20 é a constante `POOL_AEROPORTOS_MOVIMENTADOS`, definida nos dois lados (`backend/app/routers/dashboard.py` e `frontend/src/lib/chart.ts`) para o card e o gráfico não se contradizerem. Ver Decisão 05 em `decision_log.md`.
 - **Justificativa:** responde à pergunta "qual aeroporto possui maior atraso" (Etapa 8).
 
 ---
@@ -833,6 +851,28 @@ Cada KPI abaixo existe para responder pelo menos uma pergunta definida em
 
 ---
 
+### KPI 10 — Taxas agregadas do dashboard (Σ ÷ Σ)
+
+- **Descrição:** os KPIs do topo do dashboard consolidam as 15 linhas de
+  `gold.airline_performance` num número só.
+- **Regra:** a consolidação é **soma sobre soma**, nunca a média das 15 taxas.
+
+  | KPI do painel | Fórmula |
+  |---|---|
+  | Taxa de atraso | `SUM(delayed_flights) / SUM(total_flights)` |
+  | Taxa de cancelamento | `SUM(cancelled_flights) / SUM(total_flights)` |
+  | Atraso médio (chegada) | `SUM(average_arrival_delay × voos_concluídos) / SUM(voos_concluídos)` |
+
+- **Justificativa:** `AVG(delay_rate)` dá à Hawaiian (78.530 voos) o mesmo
+  peso da Southwest (1.419.419 voos) — 18 vezes maior. O resultado não é
+  "a taxa de atraso do setor", é a média de quinze números sem relação com o
+  tamanho de cada companhia. Σ ÷ Σ é o que os KPIs 02 e 05 definem: voos
+  atrasados ÷ total de voos.
+- **Valores atuais:** 7.079.081 voos · **19,82%** de atraso · **1,36%** de
+  cancelamento · **7,1 min** de atraso médio de chegada.
+
+---
+
 ### 📋 Resumo — KPI × Pergunta de Negócio
 
 | KPI | Pergunta(s) de negócio atendida(s) (Etapa 8) |
@@ -845,6 +885,7 @@ Cada KPI abaixo existe para responder pelo menos uma pergunta definida em
 | Companhia Mais Pontual | 4 |
 | Aeroporto Mais Atrasado | 5 |
 | Distribuição de Motivos de Atraso | 14, 15, 16 |
+| Taxas agregadas do dashboard (Σ ÷ Σ) | visão geral (consolida 2, 4, 5) |
 
 ---
 
@@ -1066,6 +1107,26 @@ Notebook em `notebooks/04_gold/`.
 **MySQL** (Decisão 01 — o plano original previa PostgreSQL). Recebe as
 tabelas Gold para consumo por aplicações externas ao Databricks.
 
+**Usuário somente leitura.** No Docker, a API conecta como `flight_reader`,
+criado no init com `GRANT SELECT` **tabela por tabela** nas 5 tabelas Gold
+(`database/03_readonly_user.sh`). A aplicação não consegue escrever mesmo que
+o validador de SQL do agente falhe. O `root` fica só para o init e o
+healthcheck do container. Detalhes em `docs/ai_agent_security.md`, 1.9.
+
+**Init em 3 arquivos, em ordem alfabética.** O entrypoint do MySQL executa
+`/docker-entrypoint-initdb.d` em ordem, e um `GRANT` numa tabela que ainda não
+existe falha com erro 1146:
+
+| Ordem | Arquivo | O que faz |
+|---|---|---|
+| 1 | `01_dump.sql` | cria e popula as 5 tabelas Gold |
+| 2 | `02_airport_names.sql` | preenche as colunas descritivas da Decisão 03 |
+| 3 | `03_readonly_user.sh` | cria `flight_reader` e concede os `SELECT` |
+
+O `02_airport_names.sql` é **gerado** por `scripts/gerar_nomes_aeroportos.py`,
+que reproduz a Regra 11 em pandas sobre o CSV do BTS — o dump não é alterado,
+e nenhum nome é digitado à mão.
+
 **Modelo: tabelas analíticas diretas** — uma tabela MySQL por tabela Gold,
 sem esquema estrela. As tabelas Gold já chegam agregadas e com propósito
 definido; um modelo dimensional por cima adicionaria complexidade sem ganho
@@ -1096,17 +1157,57 @@ por nome ou por cidade — quem sabe a sigla digita "ATL", quem não sabe digita
 Aplicação **React + TypeScript (Vite)** que consome a API para exibir o
 dashboard e as páginas de companhias, aeroportos, rotas, atrasos e o chat com
 o agente de IA. Componentes reutilizáveis (`KpiCard`, `BarList`, `TrendLine`,
-`CauseDonut`, `FilterBar`, `DataTable`, `PageState`) e formatação numérica
-centralizada em `src/lib/format.ts`.
+`CauseDonut`, `AirlineScatter`, `CodeCell`, `FilterBar`, `DataTable`,
+`PageState`) e formatação numérica centralizada em `src/lib/format.ts`.
+
+Componentes e comportamentos que merecem nota:
+
+- **`CodeCell`** — célula de duas linhas (código em cima, nome embaixo),
+  usada tanto para a sigla IATA do aeroporto (Decisão 03) quanto para o
+  código da companhia (Decisão 04). Generaliza o antigo `AirportCell`;
+  sem nome, mostra só o código, em vez de uma coluna inteira de travessões.
+- **`DataTable` ordenável** — cada coluna declara um `sortValue` com o valor
+  **cru**; ordenar pelo texto renderizado ("1.419.419") daria ordem
+  alfabética. A ordenação roda sobre **todos** os registros filtrados e só
+  depois a tabela corta em `rowLimit`, com botão "Mostrar mais" — cortar
+  antes faria "ordenar por cancelamento" reordenar apenas as 20 primeiras
+  linhas. Cabeçalho é `<button>`, com `aria-sort`, e nulos vão sempre ao fim.
+- **`AirlineScatter`** — dispersão atraso × cancelamento, bolha
+  proporcional ao volume e linhas tracejadas nas médias ponderadas do setor,
+  formando quadrantes.
+- **`BarList` com `reference`** — linha vertical tracejada na média do setor,
+  para a barra dizer se a companhia está acima ou abaixo.
+- **Piso de volume (Decisão 05)** — os limiares vivem em `src/lib/chart.ts`,
+  nunca soltos no JSX, e o piso usado aparece sempre na legenda do gráfico ou
+  num checkbox que o usuário pode desmarcar.
 
 ---
 
 ### 📊 Dashboard
 
-Visualizações construídas a partir dos KPIs definidos em
-`docs/business_rules.md`: total de voos, taxa de atraso, atraso médio, taxa
-de cancelamento, companhia mais pontual, aeroporto mais atrasado, gráficos de
-comparação por companhia/aeroporto/rota e evolução temporal.
+**6 KPIs no topo**, todos com a linha de apoio dizendo o critério: total de
+voos, taxa de atraso (Σ ÷ Σ), atraso médio de chegada (ponderado por voos
+concluídos), taxa de cancelamento (Σ ÷ Σ), companhia mais pontual (sigla +
+nome + taxa) e aeroporto mais atrasado (entre os 20 mais movimentados).
+
+**Quatro seções, e cada pergunta citada no cabeçalho tem gráfico próprio:**
+
+| Seção | Perguntas | Gráficos |
+|---|---|---|
+| Companhias aéreas | 1 a 4 | grid 2×2 com as 15 companhias: taxa de atraso (P4), atraso médio de chegada em minutos (P1), taxa de cancelamento (P2) e volume (P3). Os dois de taxa trazem a linha da média ponderada do setor |
+| Aeroportos | 5 a 7 | volume (P6), atraso médio de partida (P5) e taxa de cancelamento (P7), os dois últimos entre os 20 mais movimentados |
+| Rotas | 8 a 10 | volume por par de cidades (P8), atraso médio por sentido (P9) e rotas mais longas (P10) |
+| Tempo & motivos | 11, 13 a 16 | curva mensal com pico e vale marcados (P11/P13) e donut dos motivos (P14 a P16) |
+
+Dois detalhes de leitura que o dado exigiu:
+
+- **Rotas por par, não por sentido.** Volume e distância somam ida e volta e
+  rotulam `HNL↔OGG`; sem isso, metade do gráfico repetia a mesma ligação em
+  dois sentidos. O ranking de **atraso** continua por sentido, porque o
+  atraso muda com a direção.
+- **Cores dos motivos são categóricas** (`CAUSE_COLORS`), não as semânticas
+  do app: reusar o verde de "adiantado" em "Clima" e o vermelho de
+  cancelamento em "Segurança" sugeria juízo onde só há categoria.
 
 ---
 
@@ -1333,6 +1434,17 @@ listagem explícita.
 > e vira mensagem genérica. Evolução natural: validar as colunas contra
 > `ALLOWED_TABLES` com um parser de verdade (`sqlglot`, por exemplo).
 
+#### 1.5.1 — Lista de companhias no prompt (Decisão 04)
+
+O prompt leva a tabela código → nome das 15 companhias
+(`backend/app/carriers.py`), para o modelo traduzir "a Delta" em
+`op_unique_carrier = 'DL'` em vez de tentar filtrar por um nome que não
+existe no banco.
+
+**A lista não entra na whitelist de tabelas.** Ela é contexto do prompt, não
+uma fonte consultável: o dicionário vive em Python e nenhuma consulta pode
+referenciá-lo. A superfície de ataque do validador não muda.
+
 #### 1.6 — LIMIT obrigatório
 
 Sem `LIMIT`, o sistema adiciona `LIMIT 100`. Com `LIMIT` maior que 100, ele é
@@ -1345,6 +1457,27 @@ pergunta não tiver relação com voos, aeroportos, companhias aéreas, rotas ou
 atrasos. O backend detecta o token e recusa educadamente, sem gerar nem
 validar SQL nenhum.
 
+#### 1.7.1 — Fallback de nome para sigla nas respostas
+
+As colunas descritivas da Decisão 03 (`airport_label`, `airport_name`,
+`airport_city`, `origin_name`, `dest_name`) podem estar vazias no banco. Como
+o molde da resposta usa `{airport_label}`, a frase saía assim:
+
+> "O aeroporto com mais voos é o **nao informado**, com 341.910 voos."
+
+Duas correções, nas duas pontas:
+
+- **No prompt (regra 4.2):** todo `SELECT` que cite um aeroporto precisa
+  trazer, junto do nome, a **sigla** da mesma tabela (`airport`, `origin` ou
+  `dest`). Assim o fallback sempre tem de onde tirar o código.
+- **Na formatação:** um mapa `COLUNA_DESCRITIVA → COLUNA_CHAVE` em
+  `ai_agent.py` troca a coluna nula pela sigla da **mesma linha** do
+  resultado. A frase vira "O aeroporto com mais voos é o ATL, com 341.910
+  voos" — nunca "nao informado".
+
+Não é maquiagem: o valor mostrado continua vindo da linha que o banco
+devolveu, e o campo que falta é apenas o rótulo, nunca o número.
+
 #### 1.8 — Credenciais e vazamento de estrutura
 
 Nunca são enviados ao Gemini: senha do banco, connection string, API key ou
@@ -1355,13 +1488,44 @@ No sentido inverso, o erro do MySQL **não volta cru** para o usuário: vai
 completo para o log da aplicação e a API devolve uma mensagem genérica, porque
 a mensagem do MySQL descreve a estrutura interna do banco.
 
-#### 1.9 — Somente leitura: o que ainda falta
+#### 1.9 — Somente leitura garantida pelo banco
 
-A garantia de somente-leitura hoje é o validador, não o banco: o
-`docker-compose.yml` conecta como `root`. Um usuário MySQL com privilégio
-apenas de `SELECT` nas 5 tabelas Gold transformaria isso em garantia real, com
-a aplicação incapaz de escrever mesmo que o validador falhasse. Pendência
-conhecida, não implementada ainda.
+A garantia de somente-leitura **não depende mais do validador**. No Docker, a
+API conecta como `flight_reader`, um usuário criado pelo
+`database/03_readonly_user.sh` durante o init do MySQL com **apenas `SELECT`,
+tabela por tabela**, nas 5 tabelas Gold:
+
+```sql
+CREATE USER IF NOT EXISTS 'flight_reader'@'%' IDENTIFIED BY '...';
+GRANT SELECT ON flight_intelligence.airline_performance TO 'flight_reader'@'%';
+GRANT SELECT ON flight_intelligence.airport_performance TO 'flight_reader'@'%';
+GRANT SELECT ON flight_intelligence.route_performance   TO 'flight_reader'@'%';
+GRANT SELECT ON flight_intelligence.delay_causes        TO 'flight_reader'@'%';
+GRANT SELECT ON flight_intelligence.flight_trends       TO 'flight_reader'@'%';
+```
+
+**Consequência prática: no Docker, a aplicação não consegue escrever nada,
+mesmo que o validador falhe.** Um `INSERT`, `UPDATE`, `DROP` ou `INTO OUTFILE`
+que escapasse de todas as regras da seção 1 morreria no banco, com erro de
+permissão. O validador vira a primeira camada, não a única.
+
+Detalhes de implementação que importam:
+
+- **Um `GRANT` por tabela, nunca `flight_intelligence.*`** — assim qualquer
+  tabela criada no futuro nasce inacessível ao agente, em vez de ser exposta
+  automaticamente.
+- **Ordem do init.** O entrypoint do MySQL executa
+  `/docker-entrypoint-initdb.d` em ordem alfabética, e um `GRANT` numa tabela
+  que ainda não existe falha com erro 1146. Por isso os arquivos são
+  `01_dump.sql`, `02_airport_names.sql` e `03_readonly_user.sh`.
+- **Quebra de linha LF.** O `.gitattributes` marca `*.sh` como `text eol=lf`,
+  porque o Git no Windows converteria para CRLF e o container Linux
+  responderia `bad interpreter: /bin/bash^M`.
+- **`root` continua existindo**, para o init e para o healthcheck do
+  container — contextos que não são a aplicação.
+- **Fora do Docker**, o `backend/.env.example` segue funcionando com `root`, e
+  traz comentado como apontar para o `flight_reader`; o SQL para criá-lo no
+  MySQL local está no README (Opção 2).
 
 ---
 
@@ -1417,7 +1581,23 @@ SQL e o molde da resposta no mesmo JSON.
 Dois ganhos: o consumo da cota diária cai pela metade, e o modelo deixa de ver
 os dados do banco (ver o topo deste documento).
 
-#### 2.5 — Boot independente do Gemini
+#### 2.5 — O modelo que respondeu volta na resposta
+
+`_call_gemini_with_fallback` devolve, junto da resposta, **qual modelo da
+cadeia respondeu**, `generate_plan` repassa, e o `ChatResponse` expõe no campo
+`model`. A linha de meta do chat mostra o modelo real:
+
+```
+gold.airport_performance · 3 linhas · 820 ms · gemini-3.6-flash
+```
+
+Antes, o frontend tinha o nome do modelo **escrito à mão** numa constante. Com
+a cadeia de fallback, isso ficava errado sempre que o preferencial estava sem
+cota: a tela dizia `gemini-3.8-flash` enquanto quem tinha respondido era outro.
+O cabeçalho agora diz só "Agente de dados · Gemini"; o modelo exato fica por
+resposta, que é onde ele de fato varia.
+
+#### 2.6 — Boot independente do Gemini
 
 O cliente Gemini é criado na primeira chamada, não no import do módulo. Antes,
 sem `GEMINI_API_KEY`, **a API inteira quebrava no boot** — derrubando junto o
@@ -1426,6 +1606,15 @@ dashboard e os endpoints de dados, que não dependem do Gemini.
 ---
 
 ### 3. Testes de validação
+
+As duas tabelas abaixo são a **suíte automatizada** de
+`backend/tests/test_validate_sql.py`, caso a caso, e não uma verificação
+feita à mão uma vez. Rodar:
+
+```bash
+backend
+env\Scripts\python -m pytest backend/tests -q
+```
 
 #### Payloads de ataque — todos bloqueados
 
@@ -1468,8 +1657,8 @@ dashboard e os endpoints de dados, que não dependem do Gemini.
 ### 📤 Status
 
 ✅ Pipeline de segurança e camada de resiliência implementados e testados.
-⚠️ Pendência conhecida: conexão ainda usa `root` (ver 1.9) e as colunas não
-são validadas por parser (ver 1.5).
+✅ Usuário somente leitura implementado (ver 1.9).
+⚠️ Pendência conhecida: as colunas não são validadas por parser (ver 1.5).
 
 
 ---
@@ -1528,21 +1717,53 @@ Detalhes completos em `docs/database_model.md`.
 
 ---
 
-### Agente de IA (Segurança — Etapa 21)
+### Suíte automatizada (`backend/tests/`)
 
-#### Testes automatizados (nível de código)
+Antes esta seção descrevia "testes automatizados (nível de código)" que **não
+existiam como arquivo** — eram verificações feitas à mão e anotadas aqui.
+Agora são uma suíte de verdade, que roda em segundos e quebra o build se
+alguém desfizer uma correção.
 
-| Entrada | Resultado |
+```bash
+# uma vez
+backend
+env\Scripts\python -m pip install -r backend/requirements-dev.txt
+
+# a cada mudança
+backend
+env\Scripts\python -m pytest backend/tests -q
+```
+
+**35 testes, 3 arquivos.** Nenhum deles precisa de MySQL nem de cota do
+Gemini: o de dashboard sobe um SQLite em memória e sobrescreve `get_db`, os
+outros testam funções puras.
+
+| Arquivo | O que cobre |
 |---|---|
-| `SELECT` válido com `LIMIT` | ✅ Aceita |
-| `SELECT *` | ❌ Bloqueada |
-| `DROP TABLE` | ❌ Bloqueada |
-| Múltiplos comandos (`;`) | ❌ Bloqueada |
-| Tabela fora da whitelist | ❌ Bloqueada |
-| Sem `LIMIT` | ✅ Aceita, `LIMIT 100` adicionado |
-| `LIMIT` excessivo | ✅ Aceita, reduzido para 100 |
+| `test_validate_sql.py` | os 10 payloads de ataque e as 5 consultas legítimas da seção 3 de `ai_agent_security.md`, caso a caso; `LIMIT` ausente, excessivo e `;` final |
+| `test_format_answer.py` | formatação pt-BR (`0.2734` → `27,34%`, milhar), fallback de nome nulo para sigla e nome da companhia (`YX` → `YX (Republic Airways)`) |
+| `test_dashboard.py` | KPIs do painel: Σ ÷ Σ em vez de média simples, atraso ponderado por voos concluídos, e o piso de volume do aeroporto mais atrasado |
 
-#### Testes via linguagem natural (uso real, ponta a ponta)
+#### Casos que existem por causa de um bug real
+
+| Teste | O bug que ele trava |
+|---|---|
+| `test_aeroporto_minusculo_nao_vence_o_kpi_de_mais_atrasado` | O card "Aeroporto mais atrasado" mostrava **MGW, com 37 voos no ano** (72,6 min), enquanto o gráfico logo abaixo mostrava **DFW** (18,93 min, 292 mil voos). O teste insere um aeroporto minúsculo com atraso enorme fora do top 20 e exige que ele **não** vença |
+| `test_taxa_de_atraso_e_soma_sobre_soma_e_nao_media_simples` | Os KPIs usavam `AVG()` das 15 companhias, dando à Hawaiian (78 mil voos) o mesmo peso da Southwest (1,4 milhão). O teste confere o valor Σ ÷ Σ **e** que ele é diferente da média simples |
+| `test_atraso_medio_de_chegada_e_ponderado_por_voos_concluidos` | Mesmo problema no atraso médio, com o peso certo: `total - cancelados - desviados`, que são as linhas em que `arr_delay` existe |
+| `test_airport_label_nulo_cai_para_a_sigla` e variantes | O chat respondia "O aeroporto com mais voos é o **nao informado**" quando as colunas da Decisão 03 vinham vazias |
+| `test_models_rodam_em_sqlite_sem_tipo_especifico_de_mysql` | Garante a premissa dos outros: se alguém acrescentar um tipo só de MySQL aos models, ele quebra aqui, explicando o motivo, em vez de derrubar a suíte inteira |
+
+#### Ordenação das tabelas (verificado na interface)
+
+| Teste | Resultado |
+|---|---|
+| Ordenar por cancelamento com a tabela cortada em 20 linhas | ⚠️ **Bug encontrado**: a página cortava **antes** de ordenar, então reordenava só os 20 maiores por volume → ✅ Corrigido: a `DataTable` recebe todos os registros filtrados e corta depois de ordenar |
+| Ordenar por coluna de texto e por coluna numérica | ✅ Numérica começa decrescente, texto começa crescente; segundo clique inverte |
+| Coluna com valores nulos | ✅ Nulos sempre no fim, nos dois sentidos |
+| Navegação por teclado no cabeçalho | ✅ Cabeçalho é `<button>`, com `aria-sort` |
+
+### Agente de IA — testes via linguagem natural (uso real, ponta a ponta)
 
 | Pergunta | Resultado |
 |---|---|
@@ -1556,10 +1777,20 @@ Detalhes completos em `docs/database_model.md`.
 
 ### 📤 Status
 
-✅ Etapa 22 concluída. 2 bugs reais identificados e corrigidos durante os
-testes (validação de pergunta vazia no agente de IA; responsividade do
-menu de navegação). Nenhuma falha de segurança encontrada no pipeline do
-agente de IA.
+✅ Etapa 22 concluída, e a suíte automatizada substituiu a lista de
+verificações manuais: **35 testes verdes** em `backend/tests/`.
+
+Bugs reais identificados e corrigidos ao longo dos testes:
+
+1. `POST /chat` com pergunta vazia chamava o Gemini à toa.
+2. Menu de navegação escondia links em tela estreita.
+3. KPI "Aeroporto mais atrasado" apontava um aeroporto de 37 voos.
+4. KPIs do painel usavam média simples das 15 companhias.
+5. Chat respondia "nao informado" quando o nome do aeroporto era nulo.
+6. Tabela ordenava **depois** de cortar as linhas, não antes.
+
+Os seis estão travados por teste (3 a 6) ou pelo próprio código (1 e 2).
+Nenhuma falha de segurança encontrada no pipeline do agente de IA.
 
 
 ---
@@ -1638,6 +1869,85 @@ decisões importantes").
 - **Sem impacto em:** Bronze (só carga), `airline_performance`,
   `delay_causes`, `flight_trends` e todas as métricas já publicadas — os
   números não mudam, apenas ganham rótulo.
+
+---
+
+### Decisão 04 — Nome da companhia aérea: dicionário fixo no backend
+
+- **Etapa:** revisão pós-Etapa 22 (backend, dashboard, agente de IA)
+- **Problema:** o mesmo da Decisão 03, agora nas companhias. A plataforma
+  mostrava apenas os códigos (`9E`, `OO`, `YX`, `OH`), que quase ninguém
+  reconhece — nem no dashboard, nem nas tabelas, nem nas respostas do agente.
+- **Opções consideradas:**
+  - (A) Derivar o nome do próprio dataset — **impossível**: o CSV do BTS traz
+    só `op_unique_carrier`. Não existe coluna de nome para derivar, ao
+    contrário de `origin_city_name`, que sustentou a Decisão 03.
+  - (B) Deixar só o código — descartada: é exatamente o problema que a
+    Decisão 03 resolveu para os aeroportos, e a incoerência ficaria visível
+    lado a lado no mesmo dashboard.
+  - (C) **Escolhida:** dicionário de 15 linhas em `backend/app/carriers.py`,
+    copiado da tabela de consulta `L_UNIQUE_CARRIERS` do BTS TranStats — a
+    mesma fonte que origina o dataset.
+- **Por que (C) aqui, se a opção (B) da Decisão 03 foi descartada lá:** o que
+  foi descartado na Decisão 03 não era "dado externo" em abstrato, eram os
+  **348 aeroportos**: uma lista longa, digitada à mão, sem fonte única, que
+  envelheceria e ficaria incompleta. Aqui são **15 linhas de uma tabela de
+  consulta oficial**, publicada pela mesma agência que publica o dataset,
+  fechada (o dataset tem exatamente essas 15 companhias) e conferível linha a
+  linha em minutos. O custo de manutenção e o risco de erro são de outra
+  ordem de grandeza.
+- **Impacto:**
+  - `backend/app/carriers.py` — fonte única: código → (nome, nome curto).
+  - `schemas.py`: `AirlinePerformanceOut` ganha `airline_name` e
+    `airline_short_name` como campos calculados; `DashboardOut` ganha
+    `most_punctual_airline_name`.
+  - `ai_agent.py`: o prompt recebe a lista código → nome (para "Delta" virar
+    `op_unique_carrier = 'DL'`) e `_formatar_valor` devolve
+    `"YX (Republic Airways)"`.
+  - Frontend: rótulo curto nos gráficos, tooltip `"YX · Republic Airways"`,
+    e a tabela de Companhias usa `CodeCell` (código em cima, nome embaixo),
+    o mesmo componente da coluna de aeroporto.
+- **Nenhuma coluna nova no MySQL.** O código continua sendo a chave das
+  tabelas Gold; o nome entra só na borda da aplicação, como atributo —
+  exatamente o princípio da Decisão 03. Nenhuma métrica muda.
+
+---
+
+### Decisão 05 — Piso de volume nos rankings
+
+- **Etapa:** revisão pós-Etapa 22 (KPIs, gráficos e tabelas)
+- **Problema:** qualquer ranking por **taxa** ou por **média** é dominado por
+  amostras minúsculas. Exemplos reais do banco:
+  - MGW: **37 voos** no ano, 72,6 min de atraso médio de partida — vencia o
+    KPI "Aeroporto mais atrasado", enquanto o gráfico logo abaixo mostrava
+    DFW (18,93 min, 292 mil voos).
+  - EWN: **51 voos**, 7,84% de cancelamento — topo de qualquer ordenação por
+    taxa de cancelamento.
+
+  Os números estão certos; a leitura é que fica errada. Um aeroporto com 37
+  voos não é "o mais atrasado dos Estados Unidos".
+- **Decisão:** um critério único, aplicado em KPI, gráfico e tabela, com os
+  limiares em constantes nomeadas — nunca um número solto no meio do código.
+
+  | Constante | Valor | Onde |
+  |---|---:|---|
+  | `POOL_AEROPORTOS_MOVIMENTADOS` | 20 | KPI "Aeroporto mais atrasado" e gráficos de taxa por aeroporto |
+  | `MIN_FLIGHTS_FOR_DELAY_RANKING` | 2.000 | ranking de rotas por atraso médio |
+  | `MIN_FLIGHTS_FOR_DELAY_RANKING_FILTERED` | 50 | mesmo ranking, com filtro de origem/destino ativo |
+  | `MIN_FLIGHTS_AIRPORT_TABLE` | 1.000 | checkbox "Só com ≥ 1.000 voos" na tabela de Aeroportos |
+  | `MIN_FLIGHTS_ROUTE_TABLE` | 100 | checkbox "Só com ≥ 100 voos" na tabela de Rotas |
+
+- **Onde moram:** `frontend/src/lib/chart.ts` (todas) e
+  `POOL_AEROPORTOS_MOVIMENTADOS` também em
+  `backend/app/routers/dashboard.py`, com comentário cruzado entre os dois —
+  o KPI e o gráfico precisam do mesmo recorte, senão um mostra MGW e o outro
+  DFW.
+- **O piso é sempre visível:** o card diz "entre os 20 mais movimentados", a
+  legenda do gráfico diz o piso realmente usado, e o checkbox da tabela pode
+  ser desmarcado. Nada é escondido do usuário — só deixa de ser o padrão.
+- **Por que o piso cai para 50 com filtro ativo:** filtrando por um aeroporto
+  pequeno (ABE, por exemplo), nenhuma rota chega a 2.000 voos e o gráfico
+  ficava vazio. O piso acompanha o universo consultado.
 
 ---
 
