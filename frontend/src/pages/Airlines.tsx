@@ -7,7 +7,7 @@ import CodeCell from "../components/CodeCell";
 import DataTable from "../components/DataTable";
 import PageState from "../components/PageState";
 import { CHART_COLORS } from "../lib/chart";
-import { mins, num, pct, topBy } from "../lib/format";
+import { mins, num, pct } from "../lib/format";
 import { airlineItems } from "./chartData";
 
 /** "Southwest" e' o nome curto mais longo; 52px (o padrao, para siglas) corta. */
@@ -28,7 +28,6 @@ export default function Airlines() {
   // Todas as 15 companhias aparecem nos graficos: o conjunto e' pequeno o
   // bastante para a comparacao visual ser direta, sem Top N.
   const total = airlines.length;
-  const porVolume = topBy(airlines, (r) => r.total_flights, total);
 
   return (
     <div className="page">
@@ -88,36 +87,51 @@ export default function Airlines() {
 
       <DataTable
         title="Detalhe por companhia"
-        hint={`${total} companhias · ordenadas por volume`}
+        hint={`${total} companhias · clique no cabeçalho para ordenar`}
         source="gold.airline_performance"
         metric="delay_rate = delayed_flights / total_flights"
         unit="% e minutos"
         loading={loading}
         error={error}
-        data={porVolume}
+        data={airlines}
+        defaultSort={{ header: "Total de voos", direction: "desc" }}
         columns={[
           {
             header: "Companhia",
             render: (r) => (
               <CodeCell code={r.op_unique_carrier} name={r.airline_name} />
             ),
+            sortValue: (r) => r.airline_name ?? r.op_unique_carrier,
           },
-          { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
-          { header: "Taxa de atraso", align: "right", render: (r) => pct(r.delay_rate) },
+          {
+            header: "Total de voos",
+            align: "right",
+            render: (r) => num(r.total_flights),
+            sortValue: (r) => r.total_flights,
+          },
+          {
+            header: "Taxa de atraso",
+            align: "right",
+            render: (r) => pct(r.delay_rate),
+            sortValue: (r) => r.delay_rate,
+          },
           {
             header: "Atraso médio (chegada)",
             align: "right",
             render: (r) => mins(r.average_arrival_delay),
+            sortValue: (r) => r.average_arrival_delay,
           },
           {
             header: "Atraso médio (partida)",
             align: "right",
             render: (r) => mins(r.average_departure_delay),
+            sortValue: (r) => r.average_departure_delay,
           },
           {
             header: "Cancelamento",
             align: "right",
             render: (r) => pct(r.cancellation_rate),
+            sortValue: (r) => r.cancellation_rate,
           },
         ]}
       />

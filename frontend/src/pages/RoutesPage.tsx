@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getRoutes } from "../services/api";
 import type { RoutePerformance } from "../types";
 import CodeCell from "../components/CodeCell";
@@ -7,16 +7,16 @@ import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
 import FilterBar from "../components/FilterBar";
 import PageState from "../components/PageState";
-import { CHART_COLORS, TOP_N } from "../lib/chart";
-import { miles, mins, num, topBy } from "../lib/format";
+import { CHART_COLORS, MIN_FLIGHTS_ROUTE_TABLE, TOP_N } from "../lib/chart";
+import { miles, mins, num } from "../lib/format";
 import { routeDelayItems, routeVolumeItems } from "./chartData";
 
 /** O filtro vai ao servidor; esperar o usuario parar de digitar evita
  *  disparar uma requisicao por tecla. */
 const DEBOUNCE_MS = 350;
 
-/** Sao 6.805 rotas: renderizar todas travaria a pagina. A busca por
- *  origem/destino e' o caminho para chegar as demais. */
+/** Sao 6.805 rotas: renderizar todas travaria a pagina. A ordenacao acontece
+ *  sobre o conjunto inteiro; o botao "Mostrar mais" revela o resto. */
 const TABLE_ROWS = 100;
 
 export default function RoutesPage() {
@@ -29,6 +29,10 @@ export default function RoutesPage() {
 
   /** Total sem filtro, guardado na primeira carga para o contador. */
   const [totalRoutes, setTotalRoutes] = useState<number | null>(null);
+
+  // Ligado por padrao (Decisao 05): sem piso, ordenar por atraso medio traz
+  // rotas de dezenas de voos no ano para o topo.
+  const [soRelevantes, setSoRelevantes] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -50,8 +54,16 @@ export default function RoutesPage() {
   }, [origin, dest]);
 
   const filtrando = origin.trim().length > 0 || dest.trim().length > 0;
-  const porVolume = topBy(routes, (r) => r.total_flights, TABLE_ROWS);
   const escopo = filtrando ? "no filtro atual" : "de todas as rotas";
+
+  // A lista sai daqui INTEIRA: quem corta e' a DataTable, depois de ordenar.
+  const filtradas = useMemo(
+    () =>
+      soRelevantes
+        ? routes.filter((route) => route.total_flights >= MIN_FLIGHTS_ROUTE_TABLE)
+        : routes,
+    [routes, soRelevantes],
+  );
 
   return (
     <div className="page">
@@ -71,14 +83,22 @@ export default function RoutesPage() {
             onChange: (value) => setDest(value.toUpperCase()),
           },
         ]}
+        toggles={[
+          {
+            label: `Só com ≥ ${num(MIN_FLIGHTS_ROUTE_TABLE)} voos`,
+            checked: soRelevantes,
+            onChange: setSoRelevantes,
+          },
+        ]}
         onClear={() => {
           setOrigin("");
           setDest("");
+          setSoRelevantes(true);
         }}
         count={
           totalRoutes === null
             ? "carregando…"
-            : `${num(routes.length)} de ${num(totalRoutes)} rotas`
+            : `${num(filtradas.length)} de ${num(totalRoutes)} rotas`
         }
       />
 
@@ -122,37 +142,44 @@ export default function RoutesPage() {
 
       <DataTable
         title="Detalhe por rota"
-        hint={
-          routes.length > TABLE_ROWS
-            ? `${TABLE_ROWS} primeiras de ${num(routes.length)} · ordenadas por volume`
-            : `${num(routes.length)} rotas · ordenadas por volume`
-        }
+        hint={`${num(filtradas.length)} rotas · clique no cabeçalho para ordenar`}
         source="gold.route_performance"
         metric="total_flights, average_arrival_delay e average_distance por par origem–destino"
         unit="voos, minutos e milhas"
         loading={loading}
         error={error}
-        data={porVolume}
+        data={filtradas}
+        rowLimit={TABLE_ROWS}
+        defaultSort={{ header: "Total de voos", direction: "desc" }}
         emptyMessage="Nenhuma rota encontrada para esse filtro."
         columns={[
           {
             header: "Origem",
             render: (r) => <CodeCell code={r.origin} name={r.origin_name} />,
+            sortValue: (r) => r.origin,
           },
           {
             header: "Destino",
             render: (r) => <CodeCell code={r.dest} name={r.dest_name} />,
+            sortValue: (r) => r.dest,
           },
-          { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
+          {
+            header: "Total de voos",
+            align: "right",
+            render: (r) => num(r.total_flights),
+            sortValue: (r) => r.total_flights,
+          },
           {
             header: "Atraso médio (chegada)",
             align: "right",
             render: (r) => mins(r.average_arrival_delay),
+            sortValue: (r) => r.average_arrival_delay,
           },
           {
             header: "Distância média",
             align: "right",
             render: (r) => miles(r.average_distance),
+            sortValue: (r) => r.average_distance,
           },
         ]}
       />

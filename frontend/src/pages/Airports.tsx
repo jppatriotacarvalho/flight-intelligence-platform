@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAirports } from "../services/api";
 import type { AirportPerformance } from "../types";
-import CodeCell from "../components/CodeCell";
 import BarList from "../components/BarList";
 import ChartCard from "../components/ChartCard";
+import CodeCell from "../components/CodeCell";
 import DataTable from "../components/DataTable";
 import FilterBar from "../components/FilterBar";
 import PageState from "../components/PageState";
-import { CHART_COLORS, TOP_N } from "../lib/chart";
-import { mins, num, pct, topBy } from "../lib/format";
+import { CHART_COLORS, MIN_FLIGHTS_AIRPORT_TABLE, TOP_N } from "../lib/chart";
+import { mins, num, pct } from "../lib/format";
 import { airportDelayItems, airportVolumeItems } from "./chartData";
 
-/** A tabela mostra os mais movimentados; a busca e' o caminho para os demais. */
+/** Quantas linhas aparecem de cada vez; o botao "Mostrar mais" revela o resto. */
 const TABLE_ROWS = 20;
 
 export default function Airports() {
@@ -19,6 +19,9 @@ export default function Airports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  // Ligado por padrao (Decisao 05): ordenar por taxa sem piso leva EWN, com
+  // 51 voos e 7,84% de cancelamento, para o topo da tabela.
+  const [soRelevantes, setSoRelevantes] = useState(true);
 
   useEffect(() => {
     getAirports()
@@ -31,19 +34,22 @@ export default function Airports() {
   // entao nao ha' motivo para ir ao servidor de novo. Aceita a sigla
   // ("ATL", por prefixo) ou o nome/cidade ("Atlanta", em qualquer posicao) —
   // quem nao decorou o codigo IATA chega no mesmo registro.
+  //
+  // A lista sai daqui INTEIRA: quem corta e' a DataTable, depois de ordenar.
   const filtrados = useMemo(() => {
     const termo = query.trim().toUpperCase();
-    const base = termo
-      ? airports.filter(
-          (airport) =>
-            airport.airport.startsWith(termo) ||
-            (airport.airport_name ?? "").toUpperCase().includes(termo),
-        )
-      : airports;
-    return topBy(base, (r) => r.total_flights, base.length);
-  }, [airports, query]);
+    return airports.filter((airport) => {
+      if (soRelevantes && airport.total_flights < MIN_FLIGHTS_AIRPORT_TABLE) {
+        return false;
+      }
+      if (!termo) return true;
+      return (
+        airport.airport.startsWith(termo) ||
+        (airport.airport_name ?? "").toUpperCase().includes(termo)
+      );
+    });
+  }, [airports, query, soRelevantes]);
 
-  const visiveis = filtrados.slice(0, TABLE_ROWS);
   const filtrando = query.trim().length > 0;
 
   // O dump pode vir sem os nomes (colunas da Decisao 03 vazias). Prometer
@@ -66,7 +72,17 @@ export default function Airports() {
             onChange: (value) => setQuery(value),
           },
         ]}
-        onClear={() => setQuery("")}
+        toggles={[
+          {
+            label: `Só com ≥ ${num(MIN_FLIGHTS_AIRPORT_TABLE)} voos`,
+            checked: soRelevantes,
+            onChange: setSoRelevantes,
+          },
+        ]}
+        onClear={() => {
+          setQuery("");
+          setSoRelevantes(true);
+        }}
         count={`${num(filtrados.length)} de ${num(airports.length)} registros`}
       />
 
@@ -110,32 +126,47 @@ export default function Airports() {
         title="Detalhe por aeroporto"
         hint={
           filtrando
-            ? `${num(visiveis.length)} de ${num(filtrados.length)} resultados para "${query.trim()}"`
-            : `top ${TABLE_ROWS} por volume de um total de ${num(airports.length)}`
+            ? `${num(filtrados.length)} resultados para "${query.trim()}" · clique no cabeçalho para ordenar`
+            : `${num(filtrados.length)} de ${num(airports.length)} aeroportos · clique no cabeçalho para ordenar`
         }
         source="gold.airport_performance"
         metric="average_departure_delay e delay_rate por aeroporto"
         unit="minutos e %"
         loading={loading}
         error={error}
-        data={visiveis}
+        data={filtrados}
+        rowLimit={TABLE_ROWS}
+        defaultSort={{ header: "Total de voos", direction: "desc" }}
         emptyMessage="Nenhum aeroporto encontrado para essa busca."
         columns={[
           {
             header: "Aeroporto",
             render: (r) => <CodeCell code={r.airport} name={r.airport_name} />,
+            sortValue: (r) => r.airport,
           },
-          { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
-          { header: "Taxa de atraso", align: "right", render: (r) => pct(r.delay_rate) },
+          {
+            header: "Total de voos",
+            align: "right",
+            render: (r) => num(r.total_flights),
+            sortValue: (r) => r.total_flights,
+          },
+          {
+            header: "Taxa de atraso",
+            align: "right",
+            render: (r) => pct(r.delay_rate),
+            sortValue: (r) => r.delay_rate,
+          },
           {
             header: "Atraso médio (partida)",
             align: "right",
             render: (r) => mins(r.average_departure_delay),
+            sortValue: (r) => r.average_departure_delay,
           },
           {
             header: "Cancelamento",
             align: "right",
             render: (r) => pct(r.cancellation_rate),
+            sortValue: (r) => r.cancellation_rate,
           },
         ]}
       />

@@ -47,6 +47,22 @@
   box-shadow: 0 0 0 3px var(--color-accent-focus);
 }
 
+.filter-bar__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filter-bar__toggle input {
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  margin: 0;
+}
+
 .filter-bar__clear {
   font-family: inherit;
   font-size: 13px;

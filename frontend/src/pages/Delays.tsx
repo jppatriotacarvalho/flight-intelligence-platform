@@ -110,19 +110,39 @@ export default function Delays() {
         loading={loading}
         error={error}
         data={trends}
+        defaultSort={{ header: "Mês", direction: "asc" }}
         columns={[
-          { header: "Mês", render: (r) => monthLong(r.month), mono: true },
-          { header: "Total de voos", align: "right", render: (r) => num(r.total_flights) },
+          {
+            header: "Mês",
+            render: (r) => monthLong(r.month),
+            mono: true,
+            // Ordena pelo numero do mes, nao pelo nome: "Abril" vem antes de
+            // "Janeiro" em ordem alfabetica.
+            sortValue: (r) => r.month,
+          },
+          {
+            header: "Total de voos",
+            align: "right",
+            render: (r) => num(r.total_flights),
+            sortValue: (r) => r.total_flights,
+          },
           {
             header: "Voos atrasados",
             align: "right",
             render: (r) => num(r.delayed_flights),
+            sortValue: (r) => r.delayed_flights,
           },
-          { header: "Taxa de atraso", align: "right", render: (r) => pct(r.delay_rate) },
+          {
+            header: "Taxa de atraso",
+            align: "right",
+            render: (r) => pct(r.delay_rate),
+            sortValue: (r) => r.delay_rate,
+          },
           {
             header: "Atraso médio (chegada)",
             align: "right",
             render: (r) => mins(r.average_arrival_delay),
+            sortValue: (r) => r.average_arrival_delay,
           },
         ]}
       />
