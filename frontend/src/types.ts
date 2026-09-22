@@ -55,12 +55,16 @@ export interface FlightTrend {
 
 export interface DashboardSummary {
   total_flights: number;
-  average_delay_rate: number | null;
+  /** Soma dos atrasados / soma do total — nao e' a media das 15 taxas. */
+  delay_rate: number | null;
   average_arrival_delay: number | null;
-  average_cancellation_rate: number | null;
+  cancellation_rate: number | null;
   most_punctual_airline: string | null;
+  most_punctual_airline_delay_rate: number | null;
   most_delayed_airport: string | null;
   most_delayed_airport_name: string | null;
+  /** Minutos de atraso medio de partida do aeroporto do KPI. */
+  most_delayed_airport_delay: number | null;
 }
 
 export interface ChatResponse {

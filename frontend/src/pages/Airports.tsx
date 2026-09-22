@@ -46,15 +46,23 @@ export default function Airports() {
   const visiveis = filtrados.slice(0, TABLE_ROWS);
   const filtrando = query.trim().length > 0;
 
+  // O dump pode vir sem os nomes (colunas da Decisao 03 vazias). Prometer
+  // "ou Atlanta" num banco so' com siglas manda o usuario buscar o que nao
+  // existe, entao o placeholder segue o dado que chegou.
+  const temNomes = airports.some((airport) => airport.airport_name);
+
   return (
     <div className="page">
       <FilterBar
         label="Buscar aeroporto"
         fields={[
           {
-            placeholder: "Sigla ou cidade (ex: ATL ou Atlanta)",
+            placeholder: temNomes
+              ? "Sigla ou cidade (ex: ATL ou Atlanta)"
+              : "Sigla (ex: ATL)",
             value: query,
             maxLength: 30,
+            wide: true,
             onChange: (value) => setQuery(value),
           },
         ]}

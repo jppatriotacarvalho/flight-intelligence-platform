@@ -33,6 +33,32 @@ export const TOOLTIP_LABEL_STYLE = {
   marginBottom: 2,
 } as const;
 
+/**
+ * Piso de volume dos rankings (Decisao 05). Sem piso, ordenar por taxa leva
+ * amostras minusculas para o topo: EWN, com 51 voos, tem 7,84% de
+ * cancelamento, e MGW, com 37 voos, 72 min de atraso medio de partida.
+ */
+
+/** Rotas abaixo disto ficam de fora do ranking de atraso medio. */
+export const MIN_FLIGHTS_FOR_DELAY_RANKING = 2000;
+
+/** Com um filtro de origem/destino ativo, o universo e' pequeno e o piso cai. */
+export const MIN_FLIGHTS_FOR_DELAY_RANKING_FILTERED = 50;
+
+/**
+ * Quantos aeroportos entram no recorte de "mais movimentados" usado pelos
+ * rankings por taxa. Espelha POOL_AEROPORTOS_MOVIMENTADOS em
+ * backend/app/routers/dashboard.py — o KPI e o grafico precisam do mesmo
+ * recorte, senao um mostra MGW e o outro DFW.
+ */
+export const POOL_AEROPORTOS_MOVIMENTADOS = 20;
+
+/** Piso do checkbox "So com >= N voos" da tabela de Aeroportos. */
+export const MIN_FLIGHTS_AIRPORT_TABLE = 1000;
+
+/** Piso do checkbox "So com >= N voos" da tabela de Rotas. */
+export const MIN_FLIGHTS_ROUTE_TABLE = 100;
+
 /** Top N padrao dos graficos (o handoff preve 5–20, default 10). */
 export const TOP_N = 10;
 

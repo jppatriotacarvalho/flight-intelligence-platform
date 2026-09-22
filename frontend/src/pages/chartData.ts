@@ -1,12 +1,12 @@
 import type { AirportPerformance, DelayCauses, RoutePerformance } from "../types";
 import type { BarItem } from "../components/BarList";
 import type { CauseSlice } from "../components/CauseDonut";
-import { CHART_COLORS } from "../lib/chart";
+import {
+  CHART_COLORS,
+  MIN_FLIGHTS_FOR_DELAY_RANKING,
+  POOL_AEROPORTOS_MOVIMENTADOS,
+} from "../lib/chart";
 import { topBy } from "../lib/format";
-
-/** Rotas com menos voos que isto ficam de fora do ranking de atraso medio:
- *  uma rota com 30 voos vira ruido no topo da lista. */
-const MIN_FLIGHTS_FOR_DELAY_RANKING = 2000;
 
 export function routeLabel(route: RoutePerformance): string {
   return `${route.origin}\u2192${route.dest}`;
@@ -44,7 +44,7 @@ export function airportVolumeItems(
 export function airportDelayItems(
   airports: AirportPerformance[],
   limit: number,
-  pool = 20,
+  pool = POOL_AEROPORTOS_MOVIMENTADOS,
 ): BarItem[] {
   return topBy(
     topBy(airports, (r) => r.total_flights, pool),

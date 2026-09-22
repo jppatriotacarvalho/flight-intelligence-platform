@@ -65,9 +65,14 @@ class FlightTrendsOut(BaseModel):
 
 class DashboardOut(BaseModel):
     total_flights: int
-    average_delay_rate: float | None
+    # "delay_rate" e "cancellation_rate" sem o prefixo "average": sao Soma /
+    # Soma sobre as 15 companhias, nao a media das taxas de cada uma.
+    delay_rate: float | None
     average_arrival_delay: float | None
-    average_cancellation_rate: float | None
+    cancellation_rate: float | None
     most_punctual_airline: str | None
+    most_punctual_airline_delay_rate: float | None = None
     most_delayed_airport: str | None
     most_delayed_airport_name: str | None = None
+    # Minutos, para o card mostrar o valor alem da sigla.
+    most_delayed_airport_delay: float | None = None

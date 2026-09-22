@@ -5,6 +5,8 @@ export interface FilterField {
   value: string;
   onChange: (value: string) => void;
   maxLength?: number;
+  /** Campo de texto livre: precisa de mais largura que uma sigla de 3 letras. */
+  wide?: boolean;
 }
 
 interface FilterBarProps {
@@ -22,7 +24,7 @@ export default function FilterBar({ label, fields, onClear, count }: FilterBarPr
       {fields.map((field) => (
         <input
           key={field.placeholder}
-          className="filter-bar__input"
+          className={`filter-bar__input${field.wide ? " filter-bar__input--wide" : ""}`}
           placeholder={field.placeholder}
           value={field.value}
           maxLength={field.maxLength}

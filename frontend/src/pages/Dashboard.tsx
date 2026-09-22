@@ -22,7 +22,11 @@ import KpiCard from "../components/KpiCard";
 import PageState from "../components/PageState";
 import SectionHeader from "../components/SectionHeader";
 import TrendLine from "../components/TrendLine";
-import { CHART_COLORS, TOP_N_DASHBOARD } from "../lib/chart";
+import {
+  CHART_COLORS,
+  POOL_AEROPORTOS_MOVIMENTADOS,
+  TOP_N_DASHBOARD,
+} from "../lib/chart";
 import { mins, monthLong, monthShort, num, pct, topBy } from "../lib/format";
 import {
   airportDelayItems,
@@ -77,32 +81,39 @@ export default function Dashboard() {
     {
       label: "Total de voos",
       value: num(summary.total_flights),
+      sub: "soma das 15 companhias",
       accent: CHART_COLORS.accent,
     },
     {
-      label: "Taxa de atraso média",
-      value: pct(summary.average_delay_rate),
+      label: "Taxa de atraso",
+      value: pct(summary.delay_rate),
+      sub: "voos atrasados ÷ total de voos",
       accent: CHART_COLORS.delay,
     },
     {
       label: "Atraso médio (chegada)",
       value: mins(summary.average_arrival_delay),
+      sub: "ponderado por voos concluídos",
       accent: CHART_COLORS.delay,
     },
     {
       label: "Taxa de cancelamento",
-      value: pct(summary.average_cancellation_rate),
+      value: pct(summary.cancellation_rate),
+      sub: "cancelados ÷ total de voos",
       accent: CHART_COLORS.cancel,
     },
     {
       label: "Companhia mais pontual",
       value: summary.most_punctual_airline ?? "—",
+      sub: `${pct(summary.most_punctual_airline_delay_rate)} dos voos atrasados`,
       accent: CHART_COLORS.positive,
     },
     {
+      // O criterio entra na linha de apoio: sem piso de volume o topo seria
+      // MGW, com 37 voos no ano — numero real, leitura errada.
       label: "Aeroporto mais atrasado",
       value: summary.most_delayed_airport ?? "—",
-      sub: summary.most_delayed_airport_name,
+      sub: `${mins(summary.most_delayed_airport_delay)} · entre os ${POOL_AEROPORTOS_MOVIMENTADOS} mais movimentados`,
       accent: CHART_COLORS.cancel,
     },
   ];
@@ -129,7 +140,7 @@ export default function Dashboard() {
             key={kpi.label}
             label={kpi.label}
             value={kpi.value}
-            sub={"sub" in kpi ? kpi.sub : null}
+            sub={kpi.sub}
             accent={kpi.accent}
           />
         ))}

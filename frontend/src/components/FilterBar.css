@@ -32,6 +32,14 @@
   width: 190px;
 }
 
+/* O placeholder "Sigla ou cidade (ex: ATL ou Atlanta)" nao cabe em 190px e
+   aparecia cortado ("ex: ATL ou /"). */
+.filter-bar__input--wide {
+  width: 100%;
+  max-width: 340px;
+  min-width: 290px;
+}
+
 .filter-bar__input:focus {
   outline: none;
   border-color: var(--color-accent);

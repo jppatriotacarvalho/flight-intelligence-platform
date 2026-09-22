@@ -311,8 +311,10 @@ Regras para o campo "sql":
    pergunta citar uma CIDADE ou o nome do aeroporto ("Atlanta", "Chicago"),
    filtre por airport_name ou airport_city com LIKE, nunca por igualdade
    com a sigla. Ex.: WHERE airport_city LIKE '%Atlanta%'.
-4.2. Sempre que a resposta citar um aeroporto, inclua airport_label
-   (ou airport_name) no SELECT, para a frase sair com o nome e não só a sigla.
+4.2. Sempre que a resposta citar um aeroporto, inclua no SELECT o nome
+   (airport_label ou airport_name) E TAMBÉM a sigla da mesma tabela
+   (airport, origin ou dest). A sigla é obrigatória: quando o nome estiver
+   vazio no banco, é ela que entra na frase no lugar dele.
 
 Regras para o campo "resposta":
 5. Escreva uma frase natural em português que responda à pergunta, usando
@@ -411,6 +413,29 @@ def run_query(sql: str) -> list[dict]:
     return linhas
 
 
+# Coluna descritiva -> coluna que carrega a sigla na MESMA linha.
+# As colunas da Decisao 03 podem vir NULL (o dump atual nao tem os nomes), e
+# sem isto a resposta saia "o aeroporto com mais voos e' o nao informado".
+# A sigla e' a chave e sempre existe, entao ela e' o fallback natural.
+COLUNA_DESCRITIVA_PARA_CHAVE = {
+    "airport_label": "airport",
+    "airport_name": "airport",
+    "airport_city": "airport",
+    "origin_name": "origin",
+    "dest_name": "dest",
+}
+
+
+def _valor_com_fallback(coluna: str, linha: dict):
+    """Valor da coluna; se vier NULL, a sigla correspondente da mesma linha."""
+    valor = linha.get(coluna)
+    if valor is not None:
+        return valor
+
+    chave = COLUNA_DESCRITIVA_PARA_CHAVE.get(coluna)
+    return linha.get(chave) if chave else valor
+
+
 def _formatar_valor(coluna: str, valor) -> str:
     """
     Formata um valor vindo do MySQL no padrao brasileiro.
@@ -441,7 +466,10 @@ def _formatar_valor(coluna: str, valor) -> str:
 
 
 def _linha_legivel(linha: dict) -> str:
-    return ", ".join(f"{col}: {_formatar_valor(col, val)}" for col, val in linha.items())
+    return ", ".join(
+        f"{col}: {_formatar_valor(col, _valor_com_fallback(col, linha))}"
+        for col in linha
+    )
 
 
 def format_answer(rows: list[dict], molde: str) -> str:
@@ -463,7 +491,8 @@ def format_answer(rows: list[dict], molde: str) -> str:
         resposta = molde
         for coluna in campos:
             resposta = resposta.replace(
-                "{" + coluna + "}", _formatar_valor(coluna, primeira[coluna])
+                "{" + coluna + "}",
+                _formatar_valor(coluna, _valor_com_fallback(coluna, primeira)),
             )
     else:
         if molde and ausentes:
