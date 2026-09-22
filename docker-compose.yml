@@ -10,7 +10,11 @@ services:
       - "3307:3306"   # 3307 no host para nao conflitar com um MySQL local ja rodando
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/flight_intelligence_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Prefixo numerico porque o entrypoint do MySQL executa os arquivos de
+      # /docker-entrypoint-initdb.d em ORDEM ALFABETICA: o dump tem que criar
+      # as tabelas antes de qualquer UPDATE ou GRANT tocar nelas.
+      - ./database/flight_intelligence_dump.sql:/docker-entrypoint-initdb.d/01_dump.sql:ro
+      - ./database/airport_names.sql:/docker-entrypoint-initdb.d/02_airport_names.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s

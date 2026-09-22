@@ -117,9 +117,18 @@ cp .env.example .env
 docker compose up --build
 ```
 
-O MySQL é populado automaticamente a partir de
-`database/flight_intelligence_dump.sql` na primeira execução — não é preciso
-rodar o pipeline do Databricks para ver a plataforma funcionando.
+O MySQL é populado automaticamente na primeira execução — não é preciso rodar
+o pipeline do Databricks para ver a plataforma funcionando. O entrypoint roda
+três arquivos, nesta ordem (ele os executa em ordem alfabética):
+
+| Ordem | Arquivo | O que faz |
+|---|---|---|
+| `01_dump.sql` | `database/flight_intelligence_dump.sql` | cria e popula as 5 tabelas Gold |
+| `02_airport_names.sql` | `database/airport_names.sql` | preenche os nomes dos aeroportos (gerado por `scripts/gerar_nomes_aeroportos.py` a partir do CSV do BTS) |
+| `03_readonly_user.sh` | `database/03_readonly_user.sh` | cria o usuário `flight_reader`, só com `SELECT` |
+
+> O init do MySQL **só roda com o volume vazio**. Depois de mudar qualquer um
+> desses arquivos, use `docker compose down -v` antes de subir de novo.
 
 ### Opção 2 — Local, sem Docker
 
@@ -129,6 +138,9 @@ rodar o pipeline do Databricks para ver a plataforma funcionando.
 # 1. Banco: crie o schema e carregue o dump no seu MySQL
 mysql -u root -p < database/schema.sql
 mysql -u root -p flight_intelligence < database/flight_intelligence_dump.sql
+
+# 1b. Nomes dos aeroportos (depois do dump — ele so' traz as colunas vazias)
+mysql -u root -p flight_intelligence < database/airport_names.sql
 
 # 2. Backend
 cd backend
