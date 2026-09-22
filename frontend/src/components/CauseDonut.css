@@ -20,7 +20,9 @@
   justify-content: center;
   gap: 2px;
   pointer-events: none;
-  padding: 0 18%;
+  /* O furo do anel tem 58% do diametro (innerRadius="58%"), entao sobram 21%
+     de cada lado. Com 18% o rotulo comecava em cima das fatias. */
+  padding: 0 21%;
   text-align: center;
 }
 
@@ -34,6 +36,10 @@
   font-size: 10px;
   color: var(--color-text-muted);
   line-height: 1.2;
+  /* O rotulo nao pode passar do furo do anel (innerRadius 58% => ~58% do
+     diametro). Quebra em duas linhas em vez de vazar por cima das fatias. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .donut__legend {

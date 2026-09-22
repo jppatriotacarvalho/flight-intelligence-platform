@@ -13,6 +13,20 @@ export const CHART_COLORS = {
   lateAircraft: "#a05cf7",
 };
 
+/**
+ * Paleta categorica dos motivos de atraso.
+ * As cores de CHART_COLORS tem SEMANTICA no app (verde = adiantado, vermelho
+ * = cancelamento), entao reusa-las aqui fazia "Clima" parecer bom e
+ * "Seguranca" parecer cancelamento. Estas cinco nao colidem com nenhuma.
+ */
+export const CAUSE_COLORS = {
+  lateAircraft: "#a05cf7",
+  carrier: "#4f8ff7",
+  nas: "#f79b4f",
+  weather: "#2a9d8f",
+  security: "#9aa3b2",
+};
+
 export const AXIS_COLOR = "#6b7280";
 export const GRID_COLOR = "#eef1f6";
 export const TRACK_COLOR = "#eef1f6";

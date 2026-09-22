@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { getDelayCauses, getTrends } from "../services/api";
 import type { DelayCauses, FlightTrend } from "../types";
-import BarList from "../components/BarList";
 import CauseDonut from "../components/CauseDonut";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
 import PageState from "../components/PageState";
 import TrendLine from "../components/TrendLine";
-import { CHART_COLORS } from "../lib/chart";
 import { mins, monthLong, monthShort, num, pct } from "../lib/format";
 import { causeSlices } from "./chartData";
 
@@ -35,20 +33,17 @@ export default function Delays() {
     rate: trend.delay_rate ?? 0,
   }));
 
-  const comTaxa = trends.filter((trend) => trend.delay_rate !== null);
-  const pico = comTaxa.reduce<FlightTrend | null>(
-    (top, trend) => ((trend.delay_rate ?? 0) > (top?.delay_rate ?? -1) ? trend : top),
-    null,
-  );
-  const vale = comTaxa.reduce<FlightTrend | null>(
-    (low, trend) => ((trend.delay_rate ?? 1) < (low?.delay_rate ?? 2) ? trend : low),
-    null,
-  );
-  const trendHint =
-    vale && pico
-      ? `mínimo em ${monthLong(vale.month).toLowerCase()} (${pct(vale.delay_rate)}) · ` +
-        `máximo em ${monthLong(pico.month).toLowerCase()} (${pct(pico.delay_rate)})`
-      : undefined;
+  const pico = trends
+    .filter((trend) => trend.delay_rate !== null)
+    .reduce<FlightTrend | null>(
+      (top, trend) => ((trend.delay_rate ?? 0) > (top?.delay_rate ?? -1) ? trend : top),
+      null,
+    );
+  // O pico e o vale ja' aparecem marcados na propria curva; o hint so' liga
+  // o grafico as perguntas de negocio.
+  const trendHint = pico
+    ? `perguntas 11 e 13 · pico em ${monthLong(pico.month).toLowerCase()}`
+    : "perguntas 11 e 13";
 
   return (
     <div className="page">
@@ -56,29 +51,6 @@ export default function Delays() {
 
       {!loading && !error && (
         <>
-          <div className="card-grid">
-            <ChartCard
-              title="Minutos de atraso por motivo"
-              hint="pergunta 14"
-              source="gold.delay_causes"
-              metric="soma de minutos atribuídos a cada motivo"
-              unit="minutos"
-              span="1 / -1"
-            >
-              <BarList
-                items={slices.map((slice) => ({
-                  label: slice.name.split(" ")[0],
-                  value: slice.value,
-                }))}
-                color={CHART_COLORS.lateAircraft}
-                format={(value) => num(value)}
-                seriesName="Minutos de atraso"
-                labelWidth={78}
-                minValueWidth={110}
-              />
-            </ChartCard>
-          </div>
-
           <ChartCard
             title="Evolução mensal da taxa de atraso"
             hint={trendHint}
@@ -91,7 +63,7 @@ export default function Delays() {
 
           <ChartCard
             title="Composição dos motivos de atraso"
-            hint={`total do ano · ${num(totalMinutos)} minutos`}
+            hint={`perguntas 14 a 16 · ${num(totalMinutos)} minutos no ano`}
             source="gold.delay_causes"
             metric="soma de minutos de atraso atribuídos a cada motivo"
             unit="minutos"

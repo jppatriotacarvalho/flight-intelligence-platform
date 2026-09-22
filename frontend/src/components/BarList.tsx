@@ -2,12 +2,14 @@ import {
   Bar,
   BarChart,
   Cell,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import {
+  AXIS_COLOR,
   TOOLTIP_LABEL_STYLE,
   TOOLTIP_STYLE,
   TRACK_COLOR,
@@ -34,9 +36,19 @@ interface BarListProps {
   labelWidth?: number;
   /** Largura minima da coluna de valores; ela cresce sozinha se precisar. */
   minValueWidth?: number;
+  /**
+   * Linha vertical tracejada de comparacao (ex.: a media ponderada do setor).
+   * Sem ela, "20% de atraso" nao diz se a companhia esta acima ou abaixo.
+   */
+  reference?: { value: number; label: string };
+  /** Mensagem quando a serie fica vazia — o motivo muda conforme o filtro. */
+  emptyMessage?: string;
 }
 
 const ROW_HEIGHT = 26;
+
+/** Faixa reservada no topo para o rotulo da linha de referencia. */
+const REFERENCE_SPACE = 16;
 
 /**
  * Barra horizontal por categoria, no padrao do handoff:
@@ -53,9 +65,11 @@ export default function BarList({
   seriesName,
   labelWidth = 52,
   minValueWidth = 82,
+  reference,
+  emptyMessage = "Sem dados para exibir.",
 }: BarListProps) {
   if (items.length === 0) {
-    return <p className="chart-empty">Sem dados para exibir.</p>;
+    return <p className="chart-empty">{emptyMessage}</p>;
   }
 
   const byLabel = new Map(items.map((item) => [item.label, item.value]));
@@ -100,17 +114,29 @@ export default function BarList({
   );
 
   return (
-    <ResponsiveContainer width="100%" height={items.length * ROW_HEIGHT + 10}>
+    <ResponsiveContainer
+      width="100%"
+      // O rotulo da linha de referencia fica acima do grafico e precisa de
+      // espaco proprio, senao sai cortado na borda do SVG.
+      height={items.length * ROW_HEIGHT + 10 + (reference ? REFERENCE_SPACE : 0)}
+    >
       <BarChart
         data={items}
         layout="vertical"
-        margin={{ top: 4, right: 0, bottom: 4, left: 0 }}
+        margin={{ top: reference ? REFERENCE_SPACE : 4, right: 0, bottom: 4, left: 0 }}
         barCategoryGap="28%"
       >
         <XAxis
           type="number"
           hide
-          domain={hasNegative ? ["dataMin", "dataMax"] : [0, "dataMax"]}
+          // A linha de referencia precisa caber no dominio: se a media do
+          // setor for maior que a maior barra, ela ficaria fora do desenho.
+          domain={[
+            hasNegative ? "dataMin" : 0,
+            reference
+              ? (dataMax: number) => Math.max(dataMax, reference.value) * 1.02
+              : "dataMax",
+          ]}
         />
         <YAxis
           yAxisId="label"
@@ -153,6 +179,22 @@ export default function BarList({
             />
           ))}
         </Bar>
+
+        {reference && (
+          <ReferenceLine
+            yAxisId="label"
+            x={reference.value}
+            stroke={AXIS_COLOR}
+            strokeDasharray="4 3"
+            strokeWidth={1.5}
+            label={{
+              value: reference.label,
+              position: "top",
+              fill: AXIS_COLOR,
+              fontSize: 10.5,
+            }}
+          />
+        )}
       </BarChart>
     </ResponsiveContainer>
   );

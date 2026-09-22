@@ -7,9 +7,15 @@ import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
 import FilterBar from "../components/FilterBar";
 import PageState from "../components/PageState";
-import { CHART_COLORS, MIN_FLIGHTS_ROUTE_TABLE, TOP_N } from "../lib/chart";
+import {
+  CHART_COLORS,
+  MIN_FLIGHTS_FOR_DELAY_RANKING,
+  MIN_FLIGHTS_FOR_DELAY_RANKING_FILTERED,
+  MIN_FLIGHTS_ROUTE_TABLE,
+  TOP_N,
+} from "../lib/chart";
 import { miles, mins, num } from "../lib/format";
-import { routeDelayItems, routeVolumeItems } from "./chartData";
+import { routeDelayItems, routePairItems } from "./chartData";
 
 /** O filtro vai ao servidor; esperar o usuario parar de digitar evita
  *  disparar uma requisicao por tecla. */
@@ -55,6 +61,13 @@ export default function RoutesPage() {
 
   const filtrando = origin.trim().length > 0 || dest.trim().length > 0;
   const escopo = filtrando ? "no filtro atual" : "de todas as rotas";
+
+  // Com filtro ativo o universo e' pequeno: filtrando por ABE, nenhuma rota
+  // chega a 2.000 voos e o grafico de atraso ficava vazio. O piso acompanha
+  // o recorte, e a legenda mostra qual piso foi realmente usado.
+  const pisoAtraso = filtrando
+    ? MIN_FLIGHTS_FOR_DELAY_RANKING_FILTERED
+    : MIN_FLIGHTS_FOR_DELAY_RANKING;
 
   // A lista sai daqui INTEIRA: quem corta e' a DataTable, depois de ordenar.
   const filtradas = useMemo(
@@ -108,13 +121,13 @@ export default function RoutesPage() {
         <div className="card-grid">
           <ChartCard
             title="Top rotas por volume"
-            hint={`top ${TOP_N} ${escopo}`}
+            hint={`top ${TOP_N} ${escopo} · pergunta 8`}
             source="gold.route_performance"
-            metric="total_flights por par origem–destino"
+            metric="total_flights por par de cidades, soma dos dois sentidos"
             unit="voos"
           >
             <BarList
-              items={routeVolumeItems(routes, TOP_N)}
+              items={routePairItems(routes, TOP_N, "flights")}
               color={CHART_COLORS.navy}
               format={(value) => num(value)}
               seriesName="Total de voos"
@@ -124,16 +137,33 @@ export default function RoutesPage() {
 
           <ChartCard
             title="Top rotas por atraso médio"
-            hint={`top ${TOP_N} ${escopo}`}
+            hint={`top ${TOP_N} ${escopo} · pergunta 9`}
             source="gold.route_performance"
-            metric="average_arrival_delay (rotas com mais de 2.000 voos)"
+            metric={`average_arrival_delay por sentido (rotas com ${num(pisoAtraso)} voos ou mais)`}
             unit="minutos"
           >
             <BarList
-              items={routeDelayItems(routes, TOP_N)}
+              items={routeDelayItems(routes, TOP_N, pisoAtraso)}
               color={CHART_COLORS.delay}
               format={(value) => mins(value)}
               seriesName="Atraso médio de chegada"
+              labelWidth={78}
+              emptyMessage={`Nenhuma rota com ≥ ${num(pisoAtraso)} voos neste filtro.`}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Rotas mais longas"
+            hint={`top ${TOP_N} ${escopo} · pergunta 10`}
+            source="gold.route_performance"
+            metric="average_distance por par de cidades, soma dos dois sentidos"
+            unit="milhas"
+          >
+            <BarList
+              items={routePairItems(routes, TOP_N, "distance")}
+              color={CHART_COLORS.accent}
+              format={(value) => miles(value)}
+              seriesName="Distância"
               labelWidth={78}
             />
           </ChartCard>

@@ -27,14 +27,20 @@ import {
   POOL_AEROPORTOS_MOVIMENTADOS,
   TOP_N_DASHBOARD,
 } from "../lib/chart";
-import { mins, monthLong, monthShort, num, pct, topBy } from "../lib/format";
+import { miles, mins, monthLong, monthShort, num, pct } from "../lib/format";
 import {
+  airlineItems,
+  airlineWeightedAverage,
+  airportCancelItems,
   airportDelayItems,
   airportVolumeItems,
   causeSlices,
   routeDelayItems,
-  routeVolumeItems,
+  routePairItems,
 } from "./chartData";
+
+/** "Southwest" e' o nome curto mais longo; 52px (o padrao, para siglas) corta. */
+const AIRLINE_LABEL_WIDTH = 78;
 
 export default function Dashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -133,6 +139,10 @@ export default function Dashboard() {
     null,
   );
 
+  // Media do setor ponderada por volume — o mesmo numero do KPI de cima.
+  const mediaAtraso = airlineWeightedAverage(airlines, (r) => r.delay_rate);
+  const mediaCancelamento = airlineWeightedAverage(airlines, (r) => r.cancellation_rate);
+
   const slices = causeSlices(causes);
   const totalCauseMinutes = slices.reduce((sum, slice) => sum + slice.value, 0);
   const causeHint = `${(totalCauseMinutes / 1000000).toFixed(1).replace(".", ",")} mi de minutos`;
@@ -153,22 +163,44 @@ export default function Dashboard() {
 
       <section className="section">
         <SectionHeader title="Companhias aéreas" hint="perguntas 1 a 4" />
-        <div className="card-grid">
+        {/* 2x2 com as 15 companhias em todos os cards: com Top N diferente
+            por card, a mais pontual sumia justamente do grafico de atraso e
+            os cards ficavam com alturas diferentes. */}
+        <div className="card-grid card-grid--pairs">
           <ChartCard
             title="Taxa de atraso por companhia"
-            hint="pergunta 1"
+            hint="pergunta 4"
             source="gold.airline_performance"
             metric="% de voos com atraso de chegada > 15 min"
             unit="%"
           >
             <BarList
-              items={topBy(airlines, (r) => r.delay_rate, TOP_N_DASHBOARD).map((r) => ({
-                label: r.op_unique_carrier,
-                value: r.delay_rate ?? 0,
-              }))}
+              items={airlineItems(airlines, (r) => r.delay_rate)}
               color={CHART_COLORS.accent}
               format={(value) => pct(value)}
               seriesName="Taxa de atraso"
+              labelWidth={AIRLINE_LABEL_WIDTH}
+              reference={
+                mediaAtraso !== null
+                  ? { value: mediaAtraso, label: `setor ${pct(mediaAtraso)}` }
+                  : undefined
+              }
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Atraso médio de chegada por companhia"
+            hint="pergunta 1"
+            source="gold.airline_performance"
+            metric="average_arrival_delay (negativo = chegada adiantada)"
+            unit="minutos"
+          >
+            <BarList
+              items={airlineItems(airlines, (r) => r.average_arrival_delay)}
+              color={CHART_COLORS.delay}
+              format={(value) => mins(value)}
+              seriesName="Atraso médio de chegada"
+              labelWidth={AIRLINE_LABEL_WIDTH}
             />
           </ChartCard>
 
@@ -180,13 +212,16 @@ export default function Dashboard() {
             unit="%"
           >
             <BarList
-              items={topBy(airlines, (r) => r.cancellation_rate, TOP_N_DASHBOARD).map((r) => ({
-                label: r.op_unique_carrier,
-                value: r.cancellation_rate ?? 0,
-              }))}
+              items={airlineItems(airlines, (r) => r.cancellation_rate)}
               color={CHART_COLORS.cancel}
               format={(value) => pct(value)}
               seriesName="Taxa de cancelamento"
+              labelWidth={AIRLINE_LABEL_WIDTH}
+              reference={
+                mediaCancelamento !== null
+                  ? { value: mediaCancelamento, label: `setor ${pct(mediaCancelamento)}` }
+                  : undefined
+              }
             />
           </ChartCard>
 
@@ -198,13 +233,11 @@ export default function Dashboard() {
             unit="voos"
           >
             <BarList
-              items={topBy(airlines, (r) => r.total_flights, TOP_N_DASHBOARD).map((r) => ({
-                label: r.op_unique_carrier,
-                value: r.total_flights,
-              }))}
+              items={airlineItems(airlines, (r) => r.total_flights)}
               color={CHART_COLORS.navy}
               format={(value) => num(value)}
               seriesName="Total de voos"
+              labelWidth={AIRLINE_LABEL_WIDTH}
             />
           </ChartCard>
         </div>
@@ -242,6 +275,21 @@ export default function Dashboard() {
               seriesName="Atraso médio de partida"
             />
           </ChartCard>
+
+          <ChartCard
+            title="Taxa de cancelamento por aeroporto"
+            hint="pergunta 7"
+            source="gold.airport_performance"
+            metric={`cancellation_rate entre os ${POOL_AEROPORTOS_MOVIMENTADOS} mais movimentados`}
+            unit="%"
+          >
+            <BarList
+              items={airportCancelItems(airports, TOP_N_DASHBOARD)}
+              color={CHART_COLORS.cancel}
+              format={(value) => pct(value)}
+              seriesName="Taxa de cancelamento"
+            />
+          </ChartCard>
         </div>
       </section>
 
@@ -252,11 +300,11 @@ export default function Dashboard() {
             title="Top rotas por volume"
             hint="pergunta 8"
             source="gold.route_performance"
-            metric="total_flights por par origem–destino"
+            metric="total_flights por par de cidades, soma dos dois sentidos"
             unit="voos"
           >
             <BarList
-              items={routeVolumeItems(routes, TOP_N_DASHBOARD)}
+              items={routePairItems(routes, TOP_N_DASHBOARD, "flights")}
               color={CHART_COLORS.navy}
               format={(value) => num(value)}
               seriesName="Total de voos"
@@ -279,11 +327,27 @@ export default function Dashboard() {
               labelWidth={78}
             />
           </ChartCard>
+
+          <ChartCard
+            title="Rotas mais longas"
+            hint="pergunta 10"
+            source="gold.route_performance"
+            metric="average_distance por par de cidades, soma dos dois sentidos"
+            unit="milhas"
+          >
+            <BarList
+              items={routePairItems(routes, TOP_N_DASHBOARD, "distance")}
+              color={CHART_COLORS.accent}
+              format={(value) => miles(value)}
+              seriesName="Distância"
+              labelWidth={78}
+            />
+          </ChartCard>
         </div>
       </section>
 
       <section className="section">
-        <SectionHeader title="Tempo & motivos de atraso" hint="perguntas 11 a 16" />
+        <SectionHeader title="Tempo & motivos de atraso" hint="perguntas 11, 13 a 16" />
         <div className="card-grid">
           <ChartCard
             title="Taxa de atraso ao longo do ano"

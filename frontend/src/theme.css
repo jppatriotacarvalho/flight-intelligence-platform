@@ -32,6 +32,15 @@
   --color-cancel: #e05c5c; /* cancelamento */
   --color-late-aircraft: #a05cf7; /* aeronave anterior */
 
+  /* ---- Cores categoricas dos motivos de atraso ----
+     Categorias, nao semantica: "Clima" nao e' bom nem ruim, so' e' outro
+     motivo. Espelhadas em CAUSE_COLORS de lib/chart.ts. */
+  --cause-late-aircraft: #a05cf7;
+  --cause-carrier: #4f8ff7;
+  --cause-nas: #f79b4f;
+  --cause-weather: #2a9d8f;
+  --cause-security: #9aa3b2;
+
   /* ---- Estado ---- */
   --color-danger: #b91c1c;
   --color-success: #16a34a;

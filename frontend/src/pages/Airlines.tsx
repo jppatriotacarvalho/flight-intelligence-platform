@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getAirlines } from "../services/api";
 import type { AirlinePerformance } from "../types";
+import AirlineScatter from "../components/AirlineScatter";
 import BarList from "../components/BarList";
 import ChartCard from "../components/ChartCard";
 import CodeCell from "../components/CodeCell";
@@ -8,7 +9,7 @@ import DataTable from "../components/DataTable";
 import PageState from "../components/PageState";
 import { CHART_COLORS } from "../lib/chart";
 import { mins, num, pct } from "../lib/format";
-import { airlineItems } from "./chartData";
+import { airlineItems, airlineWeightedAverage } from "./chartData";
 
 /** "Southwest" e' o nome curto mais longo; 52px (o padrao, para siglas) corta. */
 const AIRLINE_LABEL_WIDTH = 78;
@@ -29,6 +30,11 @@ export default function Airlines() {
   // bastante para a comparacao visual ser direta, sem Top N.
   const total = airlines.length;
 
+  // Media do setor ponderada por volume (19,82% e 1,36%), nao a media das 15
+  // taxas — e' o mesmo numero que o KPI do dashboard mostra.
+  const mediaAtraso = airlineWeightedAverage(airlines, (r) => r.delay_rate);
+  const mediaCancelamento = airlineWeightedAverage(airlines, (r) => r.cancellation_rate);
+
   return (
     <div className="page">
       {(loading || error) && <PageState loading={loading} error={error} skeletons={3} />}
@@ -37,7 +43,7 @@ export default function Airlines() {
         <div className="card-grid">
           <ChartCard
             title="Taxa de atraso por companhia"
-            hint={`${total} companhias`}
+            hint={`${total} companhias · pergunta 4`}
             source="gold.airline_performance"
             metric="% de voos com atraso de chegada > 15 min"
             unit="%"
@@ -48,12 +54,33 @@ export default function Airlines() {
               format={(value) => pct(value)}
               seriesName="Taxa de atraso"
               labelWidth={AIRLINE_LABEL_WIDTH}
+              reference={
+                mediaAtraso !== null
+                  ? { value: mediaAtraso, label: `setor ${pct(mediaAtraso)}` }
+                  : undefined
+              }
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Atraso médio de chegada por companhia"
+            hint={`${total} companhias · pergunta 1`}
+            source="gold.airline_performance"
+            metric="average_arrival_delay (negativo = chegada adiantada)"
+            unit="minutos"
+          >
+            <BarList
+              items={airlineItems(airlines, (r) => r.average_arrival_delay)}
+              color={CHART_COLORS.delay}
+              format={(value) => mins(value)}
+              seriesName="Atraso médio de chegada"
+              labelWidth={AIRLINE_LABEL_WIDTH}
             />
           </ChartCard>
 
           <ChartCard
             title="Taxa de cancelamento por companhia"
-            hint={`${total} companhias`}
+            hint={`${total} companhias · pergunta 2`}
             source="gold.airline_performance"
             metric="cancelled_flights / total_flights"
             unit="%"
@@ -64,12 +91,17 @@ export default function Airlines() {
               format={(value) => pct(value)}
               seriesName="Taxa de cancelamento"
               labelWidth={AIRLINE_LABEL_WIDTH}
+              reference={
+                mediaCancelamento !== null
+                  ? { value: mediaCancelamento, label: `setor ${pct(mediaCancelamento)}` }
+                  : undefined
+              }
             />
           </ChartCard>
 
           <ChartCard
             title="Volume de voos por companhia"
-            hint={`${total} companhias`}
+            hint={`${total} companhias · pergunta 3`}
             source="gold.airline_performance"
             metric="total_flights no ano"
             unit="voos"
@@ -80,6 +112,21 @@ export default function Airlines() {
               format={(value) => num(value)}
               seriesName="Total de voos"
               labelWidth={AIRLINE_LABEL_WIDTH}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Atraso × cancelamento"
+            hint={`${total} companhias · tamanho da bolha = volume`}
+            source="gold.airline_performance"
+            metric="delay_rate × cancellation_rate, linhas nas médias ponderadas do setor"
+            unit="% e voos"
+            span="1 / -1"
+          >
+            <AirlineScatter
+              airlines={airlines}
+              delayAverage={mediaAtraso}
+              cancelAverage={mediaCancelamento}
             />
           </ChartCard>
         </div>

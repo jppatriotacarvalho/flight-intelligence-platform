@@ -5,6 +5,8 @@ import "./CauseDonut.css";
 
 export interface CauseSlice {
   name: string;
+  /** Versao curta para o centro do anel ("Aeronave ant."). */
+  shortName: string;
   /** Minutos de atraso atribuidos ao motivo. */
   value: number;
   color: string;
@@ -72,7 +74,9 @@ export default function CauseDonut({
           <span className="donut__center-value" style={{ fontSize: size > 160 ? 22 : 17 }}>
             {share(biggest.value)}
           </span>
-          <span className="donut__center-label">{biggest.name}</span>
+          {/* Nome curto no centro: "Aeronave anterior" e' mais largo que o
+              furo do anel e vazava por cima do desenho. */}
+          <span className="donut__center-label">{biggest.shortName}</span>
         </div>
       </div>
 
