@@ -88,7 +88,7 @@ Executado no **Databricks Free Edition**, Compute **Serverless**.
 A documentação técnica completa do projeto está em
 [`docs/documentacao_completa.md`](../docs/documentacao_completa.md), e o
 relatório desta execução em
-[`docs/etapa15_execucao.md`](../docs/etapa15_execucao.md).
+[Execução com o Dataset Completo](../docs/documentacao_completa.md#7-execução-com-o-dataset-completo).
 
 As seções que governam diretamente estes notebooks:
 

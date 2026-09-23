@@ -1612,8 +1612,7 @@ As duas tabelas abaixo são a **suíte automatizada** de
 feita à mão uma vez. Rodar:
 
 ```bash
-backend
-env\Scripts\python -m pytest backend/tests -q
+backend\venv\Scripts\python -m pytest backend/tests -q
 ```
 
 #### Payloads de ataque — todos bloqueados
@@ -1726,12 +1725,10 @@ alguém desfizer uma correção.
 
 ```bash
 # uma vez
-backend
-env\Scripts\python -m pip install -r backend/requirements-dev.txt
+backend\venv\Scripts\python -m pip install -r backend/requirements-dev.txt
 
 # a cada mudança
-backend
-env\Scripts\python -m pytest backend/tests -q
+backend\venv\Scripts\python -m pytest backend/tests -q
 ```
 
 **35 testes, 3 arquivos.** Nenhum deles precisa de MySQL nem de cota do

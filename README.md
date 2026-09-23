@@ -54,14 +54,14 @@ React + TS         Gemini (SQL validado)
 - **Bronze**: dados brutos, sem transformação de negócio. A leitura do CSV é a
   primeira célula do notebook — não existe camada de ingestão separada.
 - **Silver**: dados limpos, validados e padronizados (11 regras documentadas em
-  [`docs/silver_rules.md`](docs/silver_rules.md)), mais a dimensão
+  [Regras de Transformação (Silver)](docs/documentacao_completa.md#5-regras-de-transformação-silver)), mais a dimensão
   `dim_airports`, que dá nome aos aeroportos sem depender de dado externo.
 - **Gold**: 5 tabelas analíticas prontas para consumo (`airline_performance`,
   `airport_performance`, `route_performance`, `delay_causes`, `flight_trends`).
 
 Pipeline executado sobre o dataset completo em **~58s** no Databricks Free
 Edition. Arquitetura completa e decisões de camada em
-[`docs/architecture.md`](docs/architecture.md); os notebooks e como reproduzir
+[Arquitetura Geral](docs/documentacao_completa.md#8-arquitetura-geral); os notebooks e como reproduzir
 em [`notebooks/README.md`](notebooks/README.md).
 
 ---
@@ -218,7 +218,7 @@ npm run dev
 
 O agente converte perguntas em SQL via Gemini, mas nada do que o modelo gera
 chega ao banco sem passar por um validador. Documentação completa em
-[`docs/ai_agent_security.md`](docs/ai_agent_security.md).
+[Agente de IA — Segurança e Resiliência](docs/documentacao_completa.md#10-agente-de-ia--segurança-e-resiliência).
 
 **Segurança**
 
@@ -259,10 +259,10 @@ chega ao banco sem passar por um validador. Documentação completa em
 
 ```bash
 # uma vez
-backendenv\Scripts\python -m pip install -r backend/requirements-dev.txt
+backend\venv\Scripts\python -m pip install -r backend/requirements-dev.txt
 
 # a cada mudança
-backendenv\Scripts\python -m pytest backend/tests -q
+backend\venv\Scripts\python -m pytest backend/tests -q
 ```
 
 Nenhum teste precisa de MySQL nem de cota do Gemini: o de dashboard sobe um
